@@ -1,0 +1,214 @@
+{
+  "escrows": [
+    {
+      "id": "7fa15c5f-5e0c-42a4-949a-49bf619f3f91",
+      "mode": "simple",
+      "title": "Logo desing 6 ",
+      "description": "Logo designed and finished",
+      "requirements": "",
+      "amount": "10",
+      "status": "disputed",
+      "buyer": {
+        "address": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "approved": false,
+        "disputeClaim": "“The seller didn’t fully complete the transaction and didn’t do it the way I wanted.”\n",
+        "disputeTxHash": "0xd975e5da9e27a2c7d3454568a8ae08c6604a3d5d3f2d1d321aea40f5f1e39fff"
+      },
+      "seller": {
+        "address": "0x22594BC1CbC898422506e4574670e27a285a0Eb8",
+        "approved": true,
+        "disputeClaim": "",
+        "approveTxHash": "0x1c441d8d6083a0f6ceddd62ee011695ed884c9f804a06d5f18371ffa40a8a676"
+      },
+      "proof": null,
+      "aiJudgment": null,
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-04-24T09:44:33.953Z",
+      "updatedAt": "2026-04-24T09:49:00.854Z",
+      "contractId": "0x9cd562d68a6e94048b17c8d91fb3c7409e0b25c617f11147a219990ff2a3c38e",
+      "createTxHash": "0xc44d43dd89cac75bdebb17e51b1e32236f5316e12b452a19cc96284ad2293e2a",
+      "depositTxHash": "0x598c938c137aaa9dc295b7ca4b495cd732f7e8ac59dae4bd39f43010e2ad62af",
+      "depositedAt": "2026-04-24T09:46:17.519Z"
+    },
+    {
+      "id": "60d7f98e-ccba-487b-a92b-ceacdbf27052",
+      "mode": "simple",
+      "title": "Logo Design 5",
+      "description": "Logo designed and finished",
+      "requirements": "",
+      "amount": "10",
+      "status": "disputed",
+      "buyer": {
+        "address": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "approved": false,
+        "disputeClaim": "The seller didn’t fully complete the transaction and didn’t do it the way I wanted.\n",
+        "disputeTxHash": "0xafbee2da1767386a740239b5e544f5d7920168cacdec235eb4b50156cb8e6c9f"
+      },
+      "seller": {
+        "address": "0x22594BC1CbC898422506e4574670e27a285a0Eb8",
+        "approved": false,
+        "disputeClaim": ""
+      },
+      "proof": null,
+      "aiJudgment": null,
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-04-24T09:37:01.287Z",
+      "updatedAt": "2026-04-24T09:41:10.901Z",
+      "contractId": "0xbc2a226c7c4810adcffe05529d4fb5c77a72c0cd6568ab030092aa6f38781fbb",
+      "createTxHash": "0x3b013aa56b2e382982dd9628e4e8d4dd9ac3c7d556fdf6b166bbd0523844aef0",
+      "depositTxHash": "0xcdbc6eba19c714cea3b39d6b5120915ba8254d8aa4f88ed9563327d3983815f7",
+      "depositedAt": "2026-04-24T09:38:29.601Z"
+    },
+    {
+      "id": "3af4c1a3-9716-440f-ac2a-216dcb12cbaf",
+      "mode": "simple",
+      "title": "Logo design 4 ",
+      "description": "Logo designed and finished",
+      "requirements": "",
+      "amount": "10",
+      "status": "pending_deposit",
+      "buyer": {
+        "address": "0x22594bc1cbc898422506e4574670e27a285a0eb8",
+        "approved": false,
+        "disputeClaim": ""
+      },
+      "seller": {
+        "address": "0x540a0027509B1C9aA0a2c5C65491cC97083E16de",
+        "approved": false,
+        "disputeClaim": ""
+      },
+      "proof": null,
+      "aiJudgment": null,
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-04-24T09:31:44.431Z",
+      "updatedAt": "2026-04-24T09:31:44.431Z"
+    },
+    {
+      "id": "682f3b57-f543-4f66-ab4c-048aa78e1cde",
+      "mode": "simple",
+      "title": "Logo Design 3",
+      "description": "Logo Designed and finished ",
+      "requirements": "",
+      "amount": "7",
+      "status": "completed",
+      "buyer": {
+        "address": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "approved": true,
+        "disputeClaim": "",
+        "approveTxHash": "0x29c5982ee24cd68e512705bc12ae9be54c60ef5c7501de397f62790ac04985cd"
+      },
+      "seller": {
+        "address": "0x22594BC1CbC898422506e4574670e27a285a0Eb8",
+        "approved": true,
+        "disputeClaim": "",
+        "approveTxHash": "0x7853c2490d3b1cd1a71a6ee68b2a4058fca211b8058ca57a92840ba905743b4d"
+      },
+      "proof": null,
+      "aiJudgment": null,
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-04-24T09:22:58.860Z",
+      "updatedAt": "2026-04-24T09:26:30.968Z",
+      "contractId": "0x5cb2bffc704ed6bd55ccb89e31e4812fe0ff003c5176f9912d5fe061a0777c84",
+      "createTxHash": "0xded202315076a6ea54963f1538062a1b16a3168bb1ab31429ceee2514294e6f3",
+      "depositTxHash": "0xe487621d24861cbf1b24927317b4f5ca7bfd10fe5b73516de25a4d6e7ce3473b",
+      "depositedAt": "2026-04-24T09:25:33.982Z",
+      "completedAt": "2026-04-24T09:26:30.968Z",
+      "releaseTx": {
+        "txHash": "0x7853c2490d3b1cd1a71a6ee68b2a4058fca211b8058ca57a92840ba905743b4d",
+        "amount": "7",
+        "timestamp": "2026-04-24T09:26:30.968Z",
+        "state": "CONFIRMED"
+      }
+    },
+    {
+      "id": "0473db2a-5cdf-41be-bda5-265de486acd9",
+      "mode": "simple",
+      "title": "Logo Design 2 ",
+      "description": "Logo designed finished",
+      "requirements": "",
+      "amount": "2",
+      "status": "completed",
+      "buyer": {
+        "address": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "approved": true,
+        "disputeClaim": "",
+        "approveTxHash": "0x16db11f4717996ee1f900195a4056f72a65f6ad6435faad26c9f0c038ab91457"
+      },
+      "seller": {
+        "address": "0x22594BC1CbC898422506e4574670e27a285a0Eb8",
+        "approved": true,
+        "disputeClaim": "",
+        "approveTxHash": "0x4263d45447488410c63389ed6b06f5e27a1d9e25f5265e40826a78e06f7e3363"
+      },
+      "proof": null,
+      "aiJudgment": null,
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-04-24T09:05:17.937Z",
+      "updatedAt": "2026-04-24T09:07:03.306Z",
+      "contractId": "0xaa55acaef33e612fbe69016193efd3ad7c67188045b75d134c1bfacd2ad599ee",
+      "createTxHash": "0x427c88f7c6351147a7d2e3a4e41e1e5852104ec1ec9ddddbbfd0eb78b8fc4d73",
+      "depositTxHash": "0xcb5464f5328620de6c7ea6a2575fdc8f51e3404206947847be68cada7040d562",
+      "depositedAt": "2026-04-24T09:05:40.568Z",
+      "completedAt": "2026-04-24T09:07:03.305Z",
+      "releaseTx": {
+        "txHash": "0x4263d45447488410c63389ed6b06f5e27a1d9e25f5265e40826a78e06f7e3363",
+        "amount": "2",
+        "timestamp": "2026-04-24T09:07:03.305Z",
+        "state": "CONFIRMED"
+      }
+    },
+    {
+      "id": "39daff00-87d5-49ed-94c9-c76bca5fb0bb",
+      "mode": "simple",
+      "title": "Logo design",
+      "description": "Logo design finished",
+      "requirements": "",
+      "amount": "2",
+      "status": "active",
+      "buyer": {
+        "address": "0x22594bc1cbc898422506e4574670e27a285a0eb8",
+        "approved": true,
+        "disputeClaim": "",
+        "approveTxHash": "0x6c708e948145aefdc7e2e4c5eddd90e2321fbf7fa30bd1d51799d90a3f19cea2"
+      },
+      "seller": {
+        "address": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "approved": false,
+        "disputeClaim": ""
+      },
+      "proof": null,
+      "aiJudgment": null,
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-04-23T21:02:25.875Z",
+      "updatedAt": "2026-04-24T08:35:04.191Z",
+      "contractId": "0x2c0ef1458742badf8e5c1a7b0198ddb73f60f270f369e29a561b76a7e1754503",
+      "createTxHash": "0x56f5916b4ac86b797004cce4c8cb806e9e49bd87eeaa629f783e34fa6750de07",
+      "depositTxHash": "0x3837ac918286121ceb2325a3584dc5cce18291252246daba7936f86748892e7d",
+      "depositedAt": "2026-04-24T08:32:39.968Z"
+    }
+  ]
+}
