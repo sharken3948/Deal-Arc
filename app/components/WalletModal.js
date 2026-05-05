@@ -33,10 +33,12 @@ export default function WalletModal() {
       window.removeEventListener('eip6963:announceProvider', handleAnnounce);
 
       const eth = window.ethereum;
-      if (!map.metamask && eth?.isMetaMask && !eth?.isRabby) map.metamask = eth;
-      if (!map.rabby    && eth?.isRabby)                     map.rabby    = eth;
-      if (!map.coinbase && eth?.isCoinbaseWallet)            map.coinbase = eth;
-      if (!map.okx      && window.okxwallet)                 map.okx      = window.okxwallet;
+      // For Rabby: prefer window.rabby (isolated global) over window.ethereum
+      if (!map.rabby    && window.rabby)                         map.rabby    = window.rabby;
+      else if (!map.rabby && eth?.isRabby)                       map.rabby    = eth;
+      if (!map.metamask && eth?.isMetaMask && !eth?.isRabby)     map.metamask = eth;
+      if (!map.coinbase && eth?.isCoinbaseWallet)                map.coinbase = eth;
+      if (!map.okx      && window.okxwallet)                     map.okx      = window.okxwallet;
 
       setProviders({ ...map });
     }, 300);

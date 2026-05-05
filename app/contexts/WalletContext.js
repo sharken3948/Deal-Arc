@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { ARC_CHAIN_ID, ARC_RPC } from '@/lib/contractABI';
+import { ARC_CHAIN_ID, ARC_RPC, getRabbyProvider } from '@/lib/contractABI';
 
 const WalletContext = createContext(null);
 
@@ -14,25 +14,31 @@ export function WalletProvider({ children }) {
 
   // Restore existing connection on mount
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.ethereum) return;
-    window.ethereum.request({ method: 'eth_accounts' })
-      .then(accounts => { if (accounts[0]) setAddress(accounts[0]); })
-      .catch(() => {});
+    const eth = getRabbyProvider();
+    if (!eth) return;
+    eth.request({ method: 'eth_accounts' })
+      .then(accounts => {
+        if (accounts[0]) {
+          setAddress(accounts[0]);
+          setProvider(eth);
+        }
+      })
+      .catch(e => console.warn('[WalletContext] eth_accounts restore failed:', e));
   }, []);
 
   // Read chainId whenever the connected address or provider changes
   useEffect(() => {
     if (!address) { setChainId(null); return; }
-    const p = provider || (typeof window !== 'undefined' ? window.ethereum : null);
+    const p = provider || getRabbyProvider();
     if (!p) return;
     p.request({ method: 'eth_chainId' })
       .then(id => setChainId(parseInt(id, 16)))
-      .catch(() => {});
+      .catch(e => console.warn('[WalletContext] eth_chainId read failed:', e));
   }, [address, provider]);
 
   // Subscribe to accountsChanged and chainChanged whenever the active provider changes
   useEffect(() => {
-    const p = provider || (typeof window !== 'undefined' ? window.ethereum : null);
+    const p = provider || getRabbyProvider();
     if (!p) return;
     const onAccounts = (accounts) => setAddress(accounts[0] || null);
     const onChain    = (id)       => setChainId(parseInt(id, 16));
@@ -84,9 +90,8 @@ export function WalletProvider({ children }) {
   const openModal  = useCallback(() => setShowModal(true),  []);
   const closeModal = useCallback(() => setShowModal(false), []);
 
-  // Ask MetaMask to switch to ARC Testnet; adds the chain first if it isn't known yet.
   const switchToARC = useCallback(async () => {
-    const p = provider || (typeof window !== 'undefined' ? window.ethereum : null);
+    const p = provider || getRabbyProvider();
     if (!p) throw new Error('No wallet connected');
     const hexId = '0x' + ARC_CHAIN_ID.toString(16);
     try {
@@ -112,7 +117,7 @@ export function WalletProvider({ children }) {
 
   return (
     <WalletContext.Provider value={{
-      address, walletName, chainId, isConnecting, showModal,
+      address, walletName, chainId, isConnecting, showModal, provider,
       connect, switchAccount, disconnect, openModal, closeModal, switchToARC,
     }}>
       {children}

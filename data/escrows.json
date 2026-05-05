@@ -1,6 +1,237 @@
 {
   "escrows": [
     {
+      "id": "2272bf51-3057-49fe-8839-36f130504dff",
+      "mode": "service",
+      "title": "Deneme2",
+      "description": "Ev boyama. Ev boyandıktan sonra her odanın fotoğrafı atılacak ve onaylayacağım",
+      "requirements": "Fotoğraflar incelendikten sonra onay verilecek",
+      "amount": "1",
+      "status": "completed",
+      "buyer": {
+        "address": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "approved": false,
+        "disputeClaim": "boyama yapılmamış yalan söylüyor yüklediğim ev benim evimin fotoğrafı. Aynı açıdan çekilmiş fotoğraf yüklemesini talep ediyorum. Boyamadığı için gösteremeyecek.",
+        "disputeTxHash": "0x6c36112be9ed7608f5bcb72ec151c25c7677a91f4e2441ed94c78e48805f1f6d",
+        "evidenceUrl": "https://gateway.pinata.cloud/ipfs/QmZPHgbvZaxVYdiYx4iBHrYEktvhVGyBgdGFiY8iFrAEKG"
+      },
+      "seller": {
+        "address": "0x22594BC1CbC898422506e4574670e27a285a0Eb8",
+        "approved": true,
+        "disputeClaim": "Boyayı yaptım işte kanıtı.",
+        "approveTxHash": "0xbce0b8590239861ed959d3b5dadbb57cc62b2f960f2b9872708490cabd713f70",
+        "evidenceUrl": "https://gateway.pinata.cloud/ipfs/QmWVafxraS7e9czR4Tyu4BzZw77X9jaatL1K4iKfsd5vBH"
+      },
+      "proof": null,
+      "aiJudgment": {
+        "verdict": "FAVOR_BUYER",
+        "confidence": 90,
+        "reasoning": "The buyer claims that the seller did not perform the painting as agreed and provided a photo that does not match the current state of their room. The seller asserts that they completed the painting but does not provide sufficient evidence. Upon examining the provided image, it appears to represent an empty room with black walls that have been painted. However, there is no clear indication that this image directly corresponds to the buyer's room or was taken from the same angle as previously shown by the buyer. Given the lack of convincing evidence from the seller and the buyer's reasonable request for a same-angle photo, the claim leans in favor of the buyer.",
+        "recommendation": "The seller should provide the same-angle photo of the room after painting as previously shown by the buyer to verify the work has been done. Until then, the funds should be held.",
+        "awardBuyerPercent": 100,
+        "rawResponse": "VERDICT: FAVOR_BUYER\nCONFIDENCE: 90\nREASONING: The buyer claims that the seller did not perform the painting as agreed and provided a photo that does not match the current state of their room. The seller asserts that they completed the painting but does not provide sufficient evidence. Upon examining the provided image, it appears to represent an empty room with black walls that have been painted. However, there is no clear indication that this image directly corresponds to the buyer's room or was taken from the same angle as previously shown by the buyer. Given the lack of convincing evidence from the seller and the buyer's reasonable request for a same-angle photo, the claim leans in favor of the buyer.\n\nRECOMMENDATION: The seller should provide the same-angle photo of the room after painting as previously shown by the buyer to verify the work has been done. Until then, the funds should be held.\n\nAWARD_BUYER_PERCENT: 100",
+        "timestamp": "2026-05-05T19:19:10.514Z",
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct"
+      },
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-05-05T19:07:02.292Z",
+      "updatedAt": "2026-05-05T19:19:15.509Z",
+      "contractId": "0x64037ec8f9bc4e5c36c3a58086635b7b95f6d44ec18a18ea70672a7e26d9d9d3",
+      "createTxHash": "0x57feaf609ac6435529221be9b7bdf645646808e803fee0159c02b26dfd3b1318",
+      "depositTxHash": "0x7c35bd46c9cdba66f3f19b40cdb1956d94ebf986c3f737adc24b723bf53e794f",
+      "depositedAt": "2026-05-05T19:07:52.831Z",
+      "disputeDeadline": "2026-05-06T19:15:40.503Z",
+      "disputedAt": "2026-05-05T19:15:40.503Z",
+      "completedAt": "2026-05-05T19:19:15.508Z",
+      "releaseTx": {
+        "txHash": "0x735f804cafb4622a7565fafa8cbc5faece48758e929b6168909026fe058d302c",
+        "amount": "1",
+        "timestamp": "2026-05-05T19:19:15.508Z",
+        "state": "CONFIRMED",
+        "winner": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "verdict": "FAVOR_BUYER"
+      }
+    },
+    {
+      "id": "906ca5ff-1631-4e2f-8e7d-6fe356c5aa24",
+      "mode": "service",
+      "title": "Deneme 1",
+      "description": "1000 adet Nft çizimi yapılacak",
+      "requirements": "1000 Adet nft için 1$ ödeme yapılacak nftlerin bitmiş halleri paylaşıldıktan sonra ödeme onaylanacak",
+      "amount": "1",
+      "status": "completed",
+      "buyer": {
+        "address": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "approved": false,
+        "disputeClaim": "1000 adet tamamlamış yalan söylüyor",
+        "disputeTxHash": "0xc31e9f8afcf37a9ecbe909061c1d2daafcecf238d5bd5dff3a102da376e26f88"
+      },
+      "seller": {
+        "address": "0x22594BC1CbC898422506e4574670e27a285a0Eb8",
+        "approved": true,
+        "disputeClaim": "1000 adet tamamladım o yalan söylüyor\n\nEvidence: https://drive.google.com/",
+        "approveTxHash": "0x81acfc22b152d7cc1924413457d1fc3abd84450c5e7fd279fbe18b4483f98266"
+      },
+      "proof": {
+        "url": "https://drive.google.com/",
+        "description": "1000 adet tamamladım ",
+        "submittedAt": "2026-05-05T18:34:50.830Z"
+      },
+      "aiJudgment": {
+        "verdict": "FAVOR_SELLER",
+        "confidence": 80,
+        "reasoning": "The seller has provided evidence in the form of a submitted proof and a proof URL, which appears to be a link to a Google Drive folder, potentially containing the 1000 NFT drawings. Although the buyer claims the seller is lying, there is no concrete evidence provided by the buyer to support this claim. The seller's claim of completing the 1000 NFT drawings is corroborated by the submitted proof, which tips the scales in their favor. However, the confidence level is not 100% due to the lack of direct access to the evidence and the possibility of the link being tampered with or falsified. The burden of proof lies with the seller, and in this case, they seem to have met it.",
+        "recommendation": "The buyer should verify the contents of the Google Drive folder to confirm the completion of the 1000 NFT drawings. If the contents are indeed the completed drawings, the buyer should accept the work and release the funds. If the buyer still disputes the evidence, they should provide their own evidence to support their claim.",
+        "awardBuyerPercent": 0,
+        "rawResponse": "VERDICT: FAVOR_SELLER\nCONFIDENCE: 80\nREASONING: The seller has provided evidence in the form of a submitted proof and a proof URL, which appears to be a link to a Google Drive folder, potentially containing the 1000 NFT drawings. Although the buyer claims the seller is lying, there is no concrete evidence provided by the buyer to support this claim. The seller's claim of completing the 1000 NFT drawings is corroborated by the submitted proof, which tips the scales in their favor. However, the confidence level is not 100% due to the lack of direct access to the evidence and the possibility of the link being tampered with or falsified. The burden of proof lies with the seller, and in this case, they seem to have met it.\nRECOMMENDATION: The buyer should verify the contents of the Google Drive folder to confirm the completion of the 1000 NFT drawings. If the contents are indeed the completed drawings, the buyer should accept the work and release the funds. If the buyer still disputes the evidence, they should provide their own evidence to support their claim.\nAWARD_BUYER_PERCENT: 0",
+        "timestamp": "2026-05-05T18:36:51.842Z",
+        "model": "llama-3.3-70b-versatile"
+      },
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-05-05T18:28:29.150Z",
+      "updatedAt": "2026-05-05T18:36:56.759Z",
+      "contractId": "0xeed616ff88fc3dafa0888e0242f653003f48a0281cc3161a16ff852f381c1e13",
+      "createTxHash": "0xafd72f46da4d2609ef2a2bf14242a88ad5fcdd678691a0304ef94fd0f647b23d",
+      "depositTxHash": "0x704faee4c81c278a6515e882a7c0c189018736be61c700f647ad3e455f90e4de",
+      "depositedAt": "2026-05-05T18:28:53.275Z",
+      "disputeDeadline": "2026-05-06T18:35:47.815Z",
+      "disputedAt": "2026-05-05T18:35:47.815Z",
+      "completedAt": "2026-05-05T18:36:56.757Z",
+      "releaseTx": {
+        "txHash": "0x63a2ee826b884f12d87d055dc7a69ba5ca9c703c5d33d54d3a99fdb640f54630",
+        "amount": "1",
+        "timestamp": "2026-05-05T18:36:56.757Z",
+        "state": "CONFIRMED",
+        "winner": "0x22594BC1CbC898422506e4574670e27a285a0Eb8",
+        "verdict": "FAVOR_SELLER"
+      }
+    },
+    {
+      "id": "dd2080ac-aef4-4c79-a6a6-27f5c1634ee5",
+      "mode": "service",
+      "title": "Nft design",
+      "description": "aslkdfjsdlkfj",
+      "requirements": "",
+      "amount": "1",
+      "status": "completed",
+      "buyer": {
+        "address": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "approved": false,
+        "disputeClaim": "1000 nft çizimi için anlaştık 990 adet tamamlamış",
+        "disputeTxHash": "0xce268cbe1fc515e0aca208eeb8bd0365deedf3227bac2aab680e0d419a80ba77"
+      },
+      "seller": {
+        "address": "0x22594BC1CbC898422506e4574670e27a285a0Eb8",
+        "approved": false,
+        "disputeClaim": ""
+      },
+      "proof": null,
+      "aiJudgment": {
+        "verdict": "FAVOR_BUYER",
+        "confidence": 90,
+        "reasoning": "The buyer claims that they agreed to 1000 NFT designs and the seller has only completed 990, implying that the seller has not fulfilled their contractual obligations. Since the seller did not submit a claim, it can be inferred that they do not dispute the buyer's allegations. The agreement, although not explicitly stated, suggests a clear understanding of the scope of work between the parties. Given the lack of response from the seller, it is reasonable to assume that the buyer's claim is accurate. Therefore, the buyer should receive the disputed amount.",
+        "recommendation": "The seller should provide the remaining 10 NFT designs to fulfill the agreement or negotiate a settlement with the buyer.",
+        "awardBuyerPercent": 100,
+        "rawResponse": "VERDICT: FAVOR_BUYER\nCONFIDENCE: 90\nREASONING: The buyer claims that they agreed to 1000 NFT designs and the seller has only completed 990, implying that the seller has not fulfilled their contractual obligations. Since the seller did not submit a claim, it can be inferred that they do not dispute the buyer's allegations. The agreement, although not explicitly stated, suggests a clear understanding of the scope of work between the parties. Given the lack of response from the seller, it is reasonable to assume that the buyer's claim is accurate. Therefore, the buyer should receive the disputed amount.\nRECOMMENDATION: The seller should provide the remaining 10 NFT designs to fulfill the agreement or negotiate a settlement with the buyer.\nAWARD_BUYER_PERCENT: 100",
+        "timestamp": "2026-05-05T15:22:56.392Z",
+        "model": "llama-3.3-70b-versatile"
+      },
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-05-05T15:22:02.310Z",
+      "updatedAt": "2026-05-05T15:23:01.173Z",
+      "contractId": "0xc0825827c25616baf63ca77398679276cc51e90079f04dfd0048c3b80f7ef2fa",
+      "createTxHash": "0xa8e2e355335617cf9de10a3cc38d6be7916437d412562022f25487b5b66b1454",
+      "depositTxHash": "0x1cc6297b133cf19d916b8eb2126b25fe8a59062c7a7d2f0f8d01ce02ed55c191",
+      "depositedAt": "2026-05-05T15:22:20.366Z",
+      "completedAt": "2026-05-05T15:23:01.171Z",
+      "releaseTx": {
+        "txHash": "0x9d73f6edc728d710a58d28b939ff4cd0d2da89da840015494f4330fb79dca972",
+        "amount": "1",
+        "timestamp": "2026-05-05T15:23:01.171Z",
+        "state": "CONFIRMED",
+        "winner": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "verdict": "FAVOR_BUYER"
+      }
+    },
+    {
+      "id": "0d6b06a0-2b4b-4960-8219-9be7a97a8e38",
+      "mode": "service",
+      "title": "Nft DESING",
+      "description": "Nft koleksiyonumun çizimlerini 1000 adet olacak şekilde yapılması",
+      "requirements": "1000 nft çizimi tamamlanınca onayı vereceğim",
+      "amount": "1",
+      "status": "disputed",
+      "buyer": {
+        "address": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "approved": false,
+        "disputeClaim": "990 adet tamamlanmış 10 adet eksik",
+        "disputeTxHash": "0x4e4475c565c34fb67d7d25b03797148130e951d3576344b854db1a036a564c97"
+      },
+      "seller": {
+        "address": "0x22594BC1CbC898422506e4574670e27a285a0Eb8",
+        "approved": false,
+        "disputeClaim": ""
+      },
+      "proof": null,
+      "aiJudgment": null,
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-05-05T15:10:07.741Z",
+      "updatedAt": "2026-05-05T15:10:47.986Z",
+      "contractId": "0x77414e770f0f3c10d624b740b138dc58f5bb0f5edd11f25b55eea67562d73d85",
+      "createTxHash": "0x4dec869df70f6540d9daf13cf864c03c93afe369e4f56d7e0d1570372d2bf6e1",
+      "depositTxHash": "0xd2ebf0e2f48933ba06c90d83edd5831e99afe2b5bbf43fb94a28329b52389a45",
+      "depositedAt": "2026-05-05T15:10:28.706Z"
+    },
+    {
+      "id": "6c05b1d3-e4f0-4822-80fa-aa9519e281ec",
+      "mode": "service",
+      "title": "Nft Design",
+      "description": "My nft collection ",
+      "requirements": "Its done",
+      "amount": "1",
+      "status": "disputed",
+      "buyer": {
+        "address": "0x540a0027509b1c9aa0a2c5c65491cc97083e16de",
+        "approved": false,
+        "disputeClaim": "Its not finished",
+        "disputeTxHash": "0xa253d9608abc2a4c0077e81214a1e72b7ec591002889c9046712e272a90a349d"
+      },
+      "seller": {
+        "address": "0x22594BC1CbC898422506e4574670e27a285a0Eb8",
+        "approved": false,
+        "disputeClaim": ""
+      },
+      "proof": null,
+      "aiJudgment": null,
+      "milestones": [],
+      "nftA": null,
+      "nftB": null,
+      "additionalUSDC": "0",
+      "transactionIds": [],
+      "createdAt": "2026-05-05T13:42:29.160Z",
+      "updatedAt": "2026-05-05T14:53:43.754Z",
+      "contractId": "0xe89d6dc3d0840bbda7d17fc4479a8fe893a0fc2afe2d91d73d990e8bdb34db27",
+      "createTxHash": "0xeb565c912f82da388bdb37a735f5f319cfda4de0ddf28b5d5c4b1cde7d6c2420",
+      "depositTxHash": "0xdac271e6caa5b6768d7d7bb2c50d8717ca776d036e1c8d4b325123b41ee436d8",
+      "depositedAt": "2026-05-05T14:51:10.200Z"
+    },
+    {
       "id": "7fa15c5f-5e0c-42a4-949a-49bf619f3f91",
       "mode": "simple",
       "title": "Logo desing 6 ",

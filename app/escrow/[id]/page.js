@@ -7,15 +7,20 @@ import Navbar from '@/app/components/Navbar';
 import StatusBadge from '@/app/components/StatusBadge';
 import AIJudgmentPanel from '@/app/components/AIJudgmentPanel';
 import MilestoneList from '@/app/components/MilestoneList';
+import DisputeModal from '@/app/components/DisputeModal';
+import SellerResponseModal from '@/app/components/SellerResponseModal';
 import { useWallet } from '@/app/contexts/WalletContext';
-import { ESCROW_ABI, USDC_ABI, ARC_CHAIN_ID } from '@/lib/contractABI';
+import { ESCROW_ABI, USDC_ABI, ARC_CHAIN_ID, getRabbyProvider } from '@/lib/contractABI';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS;
 const USDC_ADDRESS     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 
-async function getSigner() {
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  return provider.getSigner();
+async function getSigner(walletProvider) {
+  // Prefer window.rabby (Rabby's isolated global) over the stored context provider or
+  // window.ethereum, which other extensions can corrupt.
+  const prov = getRabbyProvider() ?? walletProvider;
+  if (!prov) throw new Error('No wallet provider found. Is Rabby installed?');
+  return new ethers.BrowserProvider(prov).getSigner();
 }
 
 // Returns keccak256 bytes32 ID matching what the server stored on-chain
@@ -25,6 +30,24 @@ function toBytes32(uuid) {
 
 function truncate(addr) {
   return addr ? `${addr.slice(0, 10)}…${addr.slice(-8)}` : '—';
+}
+
+function DeadlineCountdown({ deadline }) {
+  const [text, setText] = useState('');
+  useEffect(() => {
+    const tick = () => {
+      const diff = new Date(deadline) - Date.now();
+      if (diff <= 0) { setText('Deadline has passed'); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setText(`${h}h ${m}m ${s}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [deadline]);
+  return <span className="font-mono text-amber-400 font-semibold">{text}</span>;
 }
 
 function Section({ title, children }) {
@@ -159,14 +182,15 @@ function TransactionDetails({ tx }) {
 export default function EscrowDetail() {
   const { id } = useParams();
   const router = useRouter();
-  const { address, chainId, connect, switchToARC } = useWallet();
+  const { address, chainId, provider, connect, switchToARC } = useWallet();
 
   const [escrow, setEscrow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState('');
 
   const [proofForm, setProofForm] = useState({ description: '', url: '' });
-  const [disputeForm, setDisputeForm] = useState({ claim: '' });
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [showSellerModal,  setShowSellerModal]  = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
   const fetchEscrow = useCallback(async () => {
@@ -192,6 +216,7 @@ export default function EscrowDetail() {
       await fetchEscrow();
       return data;
     } catch (e) {
+      console.error('[doAction]', action, e);
       alert(`Error: ${e.message}`);
     } finally {
       setActionLoading('');
@@ -206,30 +231,42 @@ export default function EscrowDetail() {
     if (!address) { connect(); return; }
     setActionLoading('deposit');
     try {
+      console.log('[deposit] 1. ensureARC — chainId:', chainId);
       await ensureARC();
-      const signer    = await getSigner();
+      console.log('[deposit] 2. getSigner — window.rabby:', typeof window !== 'undefined' ? window.rabby : null, 'context provider:', provider);
+      const signer    = await getSigner(provider);
+      console.log('[deposit] 3. signer address:', await signer.getAddress());
       const usdc      = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
       const contract  = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
       const bytes32Id = toBytes32(escrow.id);
       const amountWei = ethers.parseUnits(String(parseFloat(escrow.amount).toFixed(6)), 6);
+      console.log('[deposit] 4. approve USDC — spender:', CONTRACT_ADDRESS, 'amount:', amountWei.toString());
 
-      // ARC native USDC has no readable allowance(); approve unconditionally before deposit
       const approveTx = await usdc.approve(CONTRACT_ADDRESS, amountWei);
-      await approveTx.wait();
+      console.log('[deposit] 5. approve tx sent:', approveTx.hash);
+      const approveReceipt = await approveTx.wait();
+      console.log('[deposit] 6. approve confirmed — status:', approveReceipt.status, 'gasUsed:', approveReceipt.gasUsed?.toString());
 
-      // Deposit into contract
+      console.log('[deposit] 7. calling contract.deposit — bytes32Id:', bytes32Id);
       const depositTx = await contract.deposit(bytes32Id);
+      console.log('[deposit] 8. deposit tx sent:', depositTx.hash);
       const receipt   = await depositTx.wait();
+      console.log('[deposit] 9. deposit confirmed — receipt:', receipt.hash);
 
-      // Sync off-chain status
+      console.log('[deposit] 10. syncing off-chain status');
       await fetch(`/api/escrow/${id}/deposit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ txHash: receipt.hash }),
       });
+      console.log('[deposit] 11. done');
       await fetchEscrow();
     } catch (e) {
-      alert(`Deposit failed: ${e.message}`);
+      const reason = e.reason ?? e.revert?.args?.[0] ?? e.data ?? e.message;
+      console.error('[confirmDeposit] error:', e.message);
+      console.error('[confirmDeposit] revert reason:', reason);
+      console.error('[confirmDeposit] code:', e.code, '| tx:', e.transaction?.data?.slice(0, 10), '| receipt:', e.receipt);
+      alert(`Deposit failed: ${reason}`);
     } finally {
       setActionLoading('');
     }
@@ -249,6 +286,7 @@ export default function EscrowDetail() {
       setProofForm({ description: '', url: '' });
       await fetchEscrow();
     } catch (e) {
+      console.error('[submitProof]', e);
       alert(e.message);
     } finally {
       setActionLoading('');
@@ -260,7 +298,7 @@ export default function EscrowDetail() {
     setActionLoading('approve');
     try {
       await ensureARC();
-      const signer    = await getSigner();
+      const signer    = await getSigner(provider);
       const contract  = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
       const bytes32Id = toBytes32(escrow.id);
 
@@ -291,45 +329,13 @@ export default function EscrowDetail() {
       if (data?.status === 'completed') alert('✅ Both parties approved! Funds have been released on-chain.');
       else if (data?.pendingOtherParty) alert('✓ Your approval is recorded on-chain. Waiting for the other party.');
     } catch (e) {
+      console.error('[approve]', e);
       alert(`Approval failed: ${e.message}`);
     } finally {
       setActionLoading('');
     }
   }
 
-  async function submitDispute() {
-    if (!disputeForm.claim) return alert('Please describe your dispute claim');
-    if (!address) { connect(); return; }
-    setActionLoading('dispute');
-    try {
-      await ensureARC();
-      const signer    = await getSigner();
-      const contract  = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
-      const bytes32Id = toBytes32(escrow.id);
-
-      // Set on-chain status to Disputed so the oracle can later call resolve()
-      const tx      = await contract.dispute(bytes32Id);
-      const receipt = await tx.wait();
-
-      // Submit claim + run Claude AI (oracle resolves on-chain when both claims received)
-      const res  = await fetch(`/api/escrow/${id}/dispute`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ address, claim: disputeForm.claim, disputeTxHash: receipt.hash }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Dispute failed');
-      await fetchEscrow();
-
-      if (data?.status === 'resolved') alert('⚖️ AI has resolved the dispute. Check the verdict below.');
-      else alert('Dispute raised on-chain. Claim submitted. Waiting for the other party to respond.');
-      setDisputeForm({ claim: '' });
-    } catch (e) {
-      alert(`Dispute failed: ${e.message}`);
-    } finally {
-      setActionLoading('');
-    }
-  }
 
   if (loading) {
     return (
@@ -364,6 +370,7 @@ export default function EscrowDetail() {
   const canApprove = isParty && !myApproval && ['active', 'proof_submitted'].includes(escrow.status);
   const canDispute = isParty && ['active', 'proof_submitted'].includes(escrow.status);
   const canConfirmDeposit = isBuyer && escrow.status === 'pending_deposit';
+  const canSubmitDefense  = isSeller && escrow.status === 'awaiting_seller_response' && !escrow.seller?.disputeClaim;
 
   const MODE_ICONS = { service: '🤝', nft_swap: '🔄', nft_sale: '🖼️', milestone: '🏁', simple: '💸' };
   const MODE_LABELS = { service: 'Service & Product', nft_swap: 'NFT Swap', nft_sale: 'NFT Sale', milestone: 'Milestone', simple: 'Simple Transfer' };
@@ -535,25 +542,32 @@ export default function EscrowDetail() {
             )}
 
             {/* Dispute claims */}
-            {escrow.status === 'disputed' && (
-              <Section title="Dispute Claims">
+            {['disputed', 'awaiting_seller_response'].includes(escrow.status) && (
+              <Section title="Dispute">
+                {escrow.status === 'awaiting_seller_response' && escrow.disputeDeadline && (
+                  <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-amber-400/5 border border-amber-400/20 mb-4">
+                    <span className="text-slate-400">Seller response deadline:</span>
+                    <DeadlineCountdown deadline={escrow.disputeDeadline} />
+                  </div>
+                )}
                 {escrow.buyer.disputeClaim && (
                   <div className="mb-3">
                     <p className="text-xs text-blue-400 font-semibold mb-1">Buyer's Claim</p>
                     <p className="text-sm text-slate-300">{escrow.buyer.disputeClaim}</p>
                   </div>
                 )}
-                {escrow.seller.disputeClaim && (
+                {escrow.seller.disputeClaim ? (
                   <div>
-                    <p className="text-xs text-purple-400 font-semibold mb-1">Seller's Claim</p>
+                    <p className="text-xs text-purple-400 font-semibold mb-1">Seller's Defense</p>
                     <p className="text-sm text-slate-300">{escrow.seller.disputeClaim}</p>
                   </div>
-                )}
-                {!escrow.buyer.disputeClaim || !escrow.seller.disputeClaim ? (
-                  <p className="text-xs text-slate-500 mt-2">
-                    Waiting for {!escrow.buyer.disputeClaim ? 'buyer' : 'seller'} to submit their claim…
+                ) : (
+                  <p className="text-xs text-slate-500 mt-1">
+                    {escrow.status === 'awaiting_seller_response'
+                      ? 'Waiting for seller to submit their defense…'
+                      : 'Seller has not submitted a claim.'}
                   </p>
-                ) : null}
+                )}
               </Section>
             )}
           </div>
@@ -670,30 +684,56 @@ export default function EscrowDetail() {
             {/* Dispute */}
             {canDispute && (
               <Section title="Raise Dispute">
-                <p className="text-sm text-amber-400 mb-3">
-                  ⚠️ Raising a dispute will pause the escrow and invoke Claude AI as the judge.
-                  Both parties must submit their claims, then AI delivers a binding verdict.
+                <p className="text-sm text-amber-400 mb-4">
+                  ⚠️ Raising a dispute pauses the escrow. The seller will have 24 hours to submit their defense,
+                  after which the AI judge issues a binding verdict.
                 </p>
-                <textarea
-                  placeholder="Describe your dispute claim clearly…"
-                  value={disputeForm.claim}
-                  onChange={e => setDisputeForm({ claim: e.target.value })}
-                  rows={4}
-                  className="w-full bg-white/5 border border-red-500/20 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none mb-3"
-                />
                 <button
-                  onClick={submitDispute}
-                  disabled={actionLoading === 'dispute'}
+                  onClick={() => { if (!address) { connect(); return; } setShowDisputeModal(true); }}
                   className="w-full py-3 rounded-xl font-semibold text-sm bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30 transition-colors"
                 >
-                  {actionLoading === 'dispute' ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
-                      Submitting & Invoking AI…
-                    </span>
-                  ) : 'Raise Dispute & Invoke AI Judge'}
+                  Raise Dispute
                 </button>
               </Section>
+            )}
+
+            {/* Seller defense */}
+            {canSubmitDefense && (
+              <Section title="Submit Your Defense">
+                <div className="mb-4 space-y-2">
+                  <p className="text-sm text-slate-300">
+                    A dispute has been raised against this escrow. You have until the deadline to submit your defense.
+                  </p>
+                  {escrow.disputeDeadline && (
+                    <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-amber-400/5 border border-amber-400/20">
+                      <span className="text-slate-400">Time remaining:</span>
+                      <DeadlineCountdown deadline={escrow.disputeDeadline} />
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowSellerModal(true)}
+                  className="btn-primary w-full py-3 rounded-xl font-semibold text-sm"
+                >
+                  Submit Your Defense →
+                </button>
+              </Section>
+            )}
+
+            {/* Awaiting seller — buyer view */}
+            {isBuyer && escrow.status === 'awaiting_seller_response' && (
+              <div className="glass rounded-xl p-5 space-y-2">
+                <p className="text-sm font-semibold text-amber-400">⏳ Awaiting Seller Defense</p>
+                {escrow.disputeDeadline && (
+                  <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-amber-400/5 border border-amber-400/20">
+                    <span className="text-slate-400">Seller must respond by:</span>
+                    <DeadlineCountdown deadline={escrow.disputeDeadline} />
+                  </div>
+                )}
+                <p className="text-xs text-slate-500">
+                  If the seller does not respond in time, the dispute auto-resolves in your favor.
+                </p>
+              </div>
             )}
 
             {/* Completed */}
@@ -712,6 +752,7 @@ export default function EscrowDetail() {
 
             {/* No actions */}
             {address && !canConfirmDeposit && !canSubmitProof && !canApprove && !canDispute &&
+             !canSubmitDefense && !(isBuyer && escrow.status === 'awaiting_seller_response') &&
              escrow.status !== 'completed' && !myApproval && (
               <div className="glass rounded-xl p-6 text-center">
                 <p className="text-slate-400 text-sm">No actions available in the current state.</p>
@@ -725,8 +766,10 @@ export default function EscrowDetail() {
           <div className="space-y-3">
             {[
               escrow.completedAt && { icon: '✅', label: 'Escrow Completed', time: escrow.completedAt, color: 'text-purple-400' },
-              escrow.proof?.submittedAt && { icon: '📋', label: 'Proof Submitted', time: escrow.proof.submittedAt, color: 'text-blue-400' },
               escrow.aiJudgment?.timestamp && { icon: '🤖', label: `AI Verdict: ${escrow.aiJudgment.verdict}`, time: escrow.aiJudgment.timestamp, color: 'text-emerald-400' },
+              escrow.seller?.disputeClaim && escrow.updatedAt && { icon: '🛡', label: 'Seller Defense Submitted', time: escrow.updatedAt, color: 'text-purple-400' },
+              escrow.disputedAt && { icon: '⚖', label: 'Dispute Raised', time: escrow.disputedAt, color: 'text-red-400' },
+              escrow.proof?.submittedAt && { icon: '📋', label: 'Proof Submitted', time: escrow.proof.submittedAt, color: 'text-blue-400' },
               { icon: '🔒', label: 'Escrow Created', time: escrow.createdAt, color: 'text-slate-400' },
             ].filter(Boolean).map((event, i) => (
               <div key={i} className="glass rounded-xl p-4 flex items-center gap-4">
@@ -747,6 +790,23 @@ export default function EscrowDetail() {
           </div>
         )}
       </div>
+
+      {showDisputeModal && (
+        <DisputeModal
+          escrow={escrow}
+          address={address}
+          onClose={() => setShowDisputeModal(false)}
+          onResolved={fetchEscrow}
+        />
+      )}
+      {showSellerModal && (
+        <SellerResponseModal
+          escrow={escrow}
+          address={address}
+          onClose={() => setShowSellerModal(false)}
+          onResolved={fetchEscrow}
+        />
+      )}
     </div>
   );
 }
