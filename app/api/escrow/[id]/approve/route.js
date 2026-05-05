@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
 
-// The user calls contract.approve(bytes32Id) from their own wallet.
-// When both parties have called it, the contract auto-releases USDC to the seller.
-// This endpoint syncs the approval state to off-chain storage.
 export async function POST(request, { params }) {
   const { id } = await params;
   const { address, txHash } = await request.json();
 
-  const escrow = storage.getById(id);
+  const escrow = await storage.getById(id);
   if (!escrow) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
 
   const isBuyer  = escrow.buyer.address.toLowerCase()  === address?.toLowerCase();
@@ -21,11 +18,11 @@ export async function POST(request, { params }) {
     ? { buyer:  { ...escrow.buyer,  approved: true, approveTxHash: txHash } }
     : { seller: { ...escrow.seller, approved: true, approveTxHash: txHash } };
 
-  const updated     = storage.update(id, updates);
+  const updated      = await storage.update(id, updates);
   const bothApproved = updated.buyer.approved && updated.seller.approved;
 
   if (bothApproved) {
-    storage.update(id, {
+    await storage.update(id, {
       status:      'completed',
       completedAt: new Date().toISOString(),
       releaseTx: {

@@ -3,14 +3,11 @@ import { storage } from '@/lib/storage';
 import { resolveDispute } from '@/lib/claude';
 import { resolveOnChain } from '@/lib/contract';
 
-// The user calls contract.dispute(bytes32Id) from their wallet first (sets on-chain status to Disputed).
-// This endpoint records the dispute claim and, when both parties have submitted claims,
-// runs Claude AI judgment and the oracle calls contract.resolve(id, winner).
 export async function POST(request, { params }) {
   const { id } = await params;
   const { address, claim, disputeTxHash } = await request.json();
 
-  const escrow = storage.getById(id);
+  const escrow = await storage.getById(id);
   if (!escrow) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
 
   const isBuyer  = escrow.buyer.address.toLowerCase()  === address?.toLowerCase();
@@ -23,8 +20,8 @@ export async function POST(request, { params }) {
     ? { status: 'disputed', buyer:  { ...escrow.buyer,  disputeClaim: claim, disputeTxHash } }
     : { status: 'disputed', seller: { ...escrow.seller, disputeClaim: claim, disputeTxHash } };
 
-  storage.update(id, updates);
-  const current = storage.getById(id);
+  await storage.update(id, updates);
+  const current = await storage.getById(id);
 
   if (current.buyer.disputeClaim && current.seller.disputeClaim) {
     try {
@@ -33,16 +30,15 @@ export async function POST(request, { params }) {
         buyerClaim:  current.buyer.disputeClaim,
         sellerClaim: current.seller.disputeClaim,
       });
-      storage.update(id, { aiJudgment: judgment });
+      await storage.update(id, { aiJudgment: judgment });
 
-      // Determine winner — contract releases full amount to one address
       const winner = judgment.verdict === 'FAVOR_BUYER' || judgment.awardBuyerPercent > 50
         ? current.buyer.address
         : current.seller.address;
 
       const { txHash } = await resolveOnChain({ uuid: id, winner });
 
-      storage.update(id, {
+      await storage.update(id, {
         status:      'completed',
         completedAt: new Date().toISOString(),
         releaseTx: {

@@ -4,7 +4,8 @@ import { judgeNFTSwap, judgeNFTSale } from '@/lib/claude';
 import { createEscrowOnChain } from '@/lib/contract';
 
 export async function GET() {
-  return NextResponse.json({ success: true, escrows: storage.getAll() });
+  const escrows = await storage.getAll();
+  return NextResponse.json({ success: true, escrows });
 }
 
 export async function POST(request) {
@@ -16,7 +17,6 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
-    // For milestone mode, calculate total from milestone amounts if not provided
     let resolvedAmount = amount || '0';
     if (mode === 'milestone' && !amount && milestones?.length) {
       const total = milestones.reduce((s, m) => s + parseFloat(m.amount || 0), 0);
@@ -27,28 +27,28 @@ export async function POST(request) {
       id: crypto.randomUUID(),
       mode,
       title,
-      description: description || '',
-      requirements: requirements || '',
-      amount: resolvedAmount,
-      status: 'pending_deposit',
-      buyer: { address: buyer, approved: false, disputeClaim: '' },
+      description:   description   || '',
+      requirements:  requirements  || '',
+      amount:        resolvedAmount,
+      status:        'pending_deposit',
+      buyer:  { address: buyer,  approved: false, disputeClaim: '' },
       seller: { address: seller, approved: false, disputeClaim: '' },
-      proof: null,
+      proof:      null,
       aiJudgment: null,
       milestones: mode === 'milestone'
         ? (milestones || []).map((m, i) => ({
-            id: crypto.randomUUID(),
-            index: i,
-            title: m.title,
+            id:          crypto.randomUUID(),
+            index:       i,
+            title:       m.title,
             description: m.description || '',
-            amount: m.amount,
-            status: 'pending',
-            proof: null,
-            aiJudgment: null,
+            amount:      m.amount,
+            status:      'pending',
+            proof:       null,
+            aiJudgment:  null,
           }))
         : [],
-      nftA: nftA || null,
-      nftB: nftB || null,
+      nftA:           nftA           || null,
+      nftB:           nftB           || null,
       additionalUSDC: additionalUSDC || '0',
       transactionIds: [],
       createdAt: new Date().toISOString(),
@@ -64,9 +64,8 @@ export async function POST(request) {
       catch (e) { console.error('NFT sale AI error:', e.message); }
     }
 
-    storage.create(escrow);
+    await storage.create(escrow);
 
-    // Register on-chain (all modes except milestone which uses per-milestone releases)
     if (mode !== 'milestone' && parseFloat(resolvedAmount) > 0) {
       try {
         const onChain = await createEscrowOnChain({
@@ -76,12 +75,11 @@ export async function POST(request) {
           amount: resolvedAmount,
           mode,
         });
-        storage.update(escrow.id, { contractId: onChain.contractId, createTxHash: onChain.txHash });
+        await storage.update(escrow.id, { contractId: onChain.contractId, createTxHash: onChain.txHash });
         escrow.contractId   = onChain.contractId;
         escrow.createTxHash = onChain.txHash;
       } catch (e) {
         console.error('On-chain create failed:', e.message);
-        // Off-chain record still valid; surface warning to client
         escrow.contractWarning = 'On-chain registration failed: ' + e.message;
       }
     }

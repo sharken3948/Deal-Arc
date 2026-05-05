@@ -8,7 +8,7 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'id, address, and reason are required' }, { status: 400 });
   }
 
-  const escrow = storage.getById(id);
+  const escrow = await storage.getById(id);
   if (!escrow) return NextResponse.json({ success: false, error: 'Escrow not found' }, { status: 404 });
 
   const isBuyer  = escrow.buyer.address.toLowerCase()  === address.toLowerCase();
@@ -25,7 +25,7 @@ export async function POST(request) {
   const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const partyKey = isBuyer ? 'buyer' : 'seller';
 
-  storage.update(id, {
+  await storage.update(id, {
     status:          'awaiting_seller_response',
     disputeDeadline: deadline,
     disputedAt:      new Date().toISOString(),

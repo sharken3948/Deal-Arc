@@ -7,7 +7,7 @@ export async function POST(request, { params }) {
   const { id } = await params;
   const { milestoneId, proofUrl, proofDescription, submitterAddress } = await request.json();
 
-  const escrow = storage.getById(id);
+  const escrow = await storage.getById(id);
   if (!escrow) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
   if (escrow.seller.address.toLowerCase() !== submitterAddress?.toLowerCase()) {
     return NextResponse.json({ success: false, error: 'Only the seller can submit proof' }, { status: 403 });
@@ -16,18 +16,13 @@ export async function POST(request, { params }) {
   const milestoneIdx = escrow.milestones.findIndex(m => m.id === milestoneId);
   if (milestoneIdx === -1) return NextResponse.json({ success: false, error: 'Milestone not found' }, { status: 404 });
 
-  const proof = { url: proofUrl || '', description: proofDescription || '', submittedAt: new Date().toISOString() };
+  const proof     = { url: proofUrl || '', description: proofDescription || '', submittedAt: new Date().toISOString() };
   const milestone = { ...escrow.milestones[milestoneIdx], proof, status: 'proof_submitted' };
 
   try {
-    const judgment = await judgeMilestone({ escrowTitle: escrow.title, milestone, proof });
+    const judgment   = await judgeMilestone({ escrowTitle: escrow.title, milestone, proof });
     milestone.aiJudgment = judgment;
-
-    if (judgment.verdict === 'APPROVE') {
-      milestone.status = 'approved';
-    } else {
-      milestone.status = 'rejected';
-    }
+    milestone.status     = judgment.verdict === 'APPROVE' ? 'approved' : 'rejected';
   } catch (e) {
     console.error('Milestone judgment error:', e.message);
   }
@@ -38,7 +33,6 @@ export async function POST(request, { params }) {
 
   let releaseTx = null;
   if (allDone) {
-    // All milestones approved — release full amount via contract oracle
     try {
       const { txHash } = await resolveOnChain({ uuid: id, winner: escrow.seller.address });
       releaseTx = { txHash, amount: escrow.amount, timestamp: new Date().toISOString(), state: 'CONFIRMED' };
@@ -47,9 +41,9 @@ export async function POST(request, { params }) {
     }
   }
 
-  storage.update(id, {
+  await storage.update(id, {
     milestones: updatedMilestones,
-    status:      allDone ? 'completed' : 'active',
+    status:     allDone ? 'completed' : 'active',
     ...(allDone ? { completedAt: new Date().toISOString(), releaseTx } : {}),
   });
 
@@ -60,7 +54,7 @@ export async function PUT(request, { params }) {
   const { id } = await params;
   const { milestoneId, approverAddress } = await request.json();
 
-  const escrow = storage.getById(id);
+  const escrow = await storage.getById(id);
   if (!escrow) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
   if (escrow.buyer.address.toLowerCase() !== approverAddress?.toLowerCase()) {
     return NextResponse.json({ success: false, error: 'Only the buyer can manually approve' }, { status: 403 });
@@ -80,9 +74,9 @@ export async function PUT(request, { params }) {
       releaseTx = { txHash, amount: escrow.amount, timestamp: new Date().toISOString(), state: 'CONFIRMED' };
     }
 
-    storage.update(id, {
+    await storage.update(id, {
       milestones: updatedMilestones,
-      status:      allDone ? 'completed' : 'active',
+      status:     allDone ? 'completed' : 'active',
       ...(allDone ? { completedAt: new Date().toISOString(), releaseTx } : {}),
     });
     return NextResponse.json({ success: true, milestone: updatedMilestones[milestoneIdx] });

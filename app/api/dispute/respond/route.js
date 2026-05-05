@@ -74,7 +74,7 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'id, address, and claim are required' }, { status: 400 });
   }
 
-  const escrow = storage.getById(id);
+  const escrow = await storage.getById(id);
   if (!escrow) return NextResponse.json({ success: false, error: 'Escrow not found' }, { status: 404 });
 
   if (escrow.seller.address.toLowerCase() !== address.toLowerCase()) {
@@ -90,11 +90,11 @@ export async function POST(request) {
   }
 
   const sellerClaim = evidence ? `${claim}\n\nEvidence: ${evidence}` : claim;
-  storage.update(id, {
+  await storage.update(id, {
     seller: { ...escrow.seller, disputeClaim: sellerClaim, evidenceUrl: evidenceUrl || null },
   });
 
-  const current = storage.getById(id);
+  const current = await storage.getById(id);
 
   // Use image evidence if either party uploaded one (prefer seller's, fall back to buyer's)
   const imageUrl = evidenceUrl || current.buyer.evidenceUrl || null;
@@ -106,7 +106,7 @@ export async function POST(request) {
       sellerClaim,
       evidenceUrl: imageUrl,
     });
-    storage.update(id, { aiJudgment: judgment });
+    await storage.update(id, { aiJudgment: judgment });
 
     const winner = judgment.verdict === 'FAVOR_BUYER' || judgment.awardBuyerPercent > 50
       ? current.buyer.address
@@ -114,7 +114,7 @@ export async function POST(request) {
 
     const { txHash } = await resolveOnChain({ uuid: id, winner });
 
-    storage.update(id, {
+    await storage.update(id, {
       status:      'completed',
       completedAt: new Date().toISOString(),
       releaseTx: {

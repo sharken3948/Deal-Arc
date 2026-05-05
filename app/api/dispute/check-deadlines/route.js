@@ -4,7 +4,8 @@ import { resolveOnChain } from '@/lib/contract';
 
 export async function GET() {
   const now     = new Date();
-  const expired = storage.getAll().filter(e =>
+  const all     = await storage.getAll();
+  const expired = all.filter(e =>
     e.status === 'awaiting_seller_response' &&
     e.disputeDeadline &&
     new Date(e.disputeDeadline) <= now
@@ -19,7 +20,7 @@ export async function GET() {
 
     const { txHash } = await resolveOnChain({ uuid: escrow.id, winner: escrow.buyer.address });
 
-    storage.update(escrow.id, {
+    await storage.update(escrow.id, {
       status:      'completed',
       completedAt: now.toISOString(),
       releaseTx: {
