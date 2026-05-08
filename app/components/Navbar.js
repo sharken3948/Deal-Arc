@@ -12,6 +12,7 @@ export default function Navbar() {
   const { address, chainId, isConnecting, switchAccount, disconnect, openModal, switchToARC } = useWallet();
   const [mounted, setMounted] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => { setMounted(true); }, []);
@@ -52,17 +53,17 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {mounted && address && chainId !== null && chainId !== ARC_CHAIN_ID ? (
             <button
               onClick={switchToARC}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-xs text-amber-400 hover:bg-amber-500/25 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-xs text-amber-400 hover:bg-amber-500/25 transition-colors"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
               Wrong Network — Switch
             </button>
           ) : (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-slate-400">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-slate-400">
               <span className={`w-1.5 h-1.5 rounded-full ${mounted && chainId === ARC_CHAIN_ID ? 'bg-emerald-400' : 'bg-slate-600'}`} />
               ARC Testnet
             </div>
@@ -85,7 +86,7 @@ export default function Navbar() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-[#0f0f1a] border border-purple-900/40 rounded-xl shadow-xl overflow-hidden">
+                <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] bg-[#0f0f1a] border border-purple-900/40 rounded-xl shadow-xl overflow-hidden">
                   <div className="px-4 py-3 border-b border-purple-900/30">
                     <p className="text-xs text-slate-500 mb-1">Connected account</p>
                     <p className="text-xs font-mono text-slate-200 break-all">{address}</p>
@@ -116,8 +117,45 @@ export default function Navbar() {
               {isConnecting ? 'Connecting…' : 'Connect Wallet'}
             </button>
           )}
+
+          {/* Hamburger — mobile only */}
+          <button
+            className="md:hidden p-2 -mr-1 text-slate-400 hover:text-white transition-colors"
+            onClick={() => setMobileMenuOpen(o => !o)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Mobile nav menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-purple-900/30 mt-3 pt-3 flex flex-col gap-1">
+          <Link
+            href="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="py-2.5 px-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/escrow/create"
+            onClick={() => setMobileMenuOpen(false)}
+            className="py-2.5 px-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+          >
+            New Escrow
+          </Link>
+        </div>
+      )}
     </nav>
   );
 }

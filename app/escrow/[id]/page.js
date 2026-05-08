@@ -10,16 +10,15 @@ import MilestoneList from '@/app/components/MilestoneList';
 import DisputeModal from '@/app/components/DisputeModal';
 import SellerResponseModal from '@/app/components/SellerResponseModal';
 import { useWallet } from '@/app/contexts/WalletContext';
-import { ESCROW_ABI, USDC_ABI, ARC_CHAIN_ID, getRabbyProvider } from '@/lib/contractABI';
+import { ESCROW_ABI, USDC_ABI, ARC_CHAIN_ID, ARC_RPC, getRabbyProvider } from '@/lib/contractABI';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS;
 const USDC_ADDRESS     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 
 async function getSigner(walletProvider) {
-  // Prefer window.rabby (Rabby's isolated global) over the stored context provider or
-  // window.ethereum, which other extensions can corrupt.
-  const prov = getRabbyProvider() ?? walletProvider;
-  if (!prov) throw new Error('No wallet provider found. Is Rabby installed?');
+  // Prefer the provider the user explicitly connected with, fall back to Rabby/window.ethereum.
+  const prov = walletProvider ?? getRabbyProvider();
+  if (!prov) throw new Error('No wallet provider found. Please connect a wallet.');
   return new ethers.BrowserProvider(prov).getSigner();
 }
 
@@ -128,12 +127,53 @@ function buildTxEvents(escrow) {
       name:   disputed ? 'Dispute Resolved' : 'Funds Released',
       desc:   disputed
         ? `Awarded to ${winner === escrow.buyer?.address ? 'buyer' : 'seller'}`
-        : `${escrow.releaseTx.amount} USDC sent to seller`,
+        : `${(parseFloat(escrow.releaseTx.amount) * 0.975).toFixed(2)} USDC sent to seller (after 2.5% fee)`,
       color:  disputed ? 'amber' : 'emerald',
       txHash: escrow.releaseTx.txHash,
     });
   }
   return events;
+}
+
+function buildHistoryEvents(escrow) {
+  const events = [];
+
+  // Escrow-level events
+  if (escrow.createdAt)
+    events.push({ icon: '🔒', label: 'Escrow Created',                           timestamp: escrow.createdAt,                       color: 'slate',   txHash: escrow.createTxHash });
+  if (escrow.depositTxHash)
+    events.push({ icon: '💰', label: `Deposit Made — ${escrow.amount} USDC`,     timestamp: escrow.depositedAt || escrow.createdAt, color: 'blue',    txHash: escrow.depositTxHash });
+  if (escrow.proof?.submittedAt)
+    events.push({ icon: '📋', label: 'Proof Submitted',                           timestamp: escrow.proof.submittedAt,               color: 'blue' });
+  if (escrow.disputedAt)
+    events.push({ icon: '⚖',  label: 'Dispute Raised',                           timestamp: escrow.disputedAt,                      color: 'red',     txHash: escrow.buyer?.disputeTxHash || escrow.seller?.disputeTxHash });
+  if (escrow.seller?.disputeClaim && escrow.updatedAt)
+    events.push({ icon: '🛡',  label: 'Seller Defense Submitted',                 timestamp: escrow.updatedAt,                       color: 'purple' });
+  if (escrow.aiJudgment?.timestamp)
+    events.push({ icon: '🤖', label: `AI Verdict: ${escrow.aiJudgment.verdict}`,  timestamp: escrow.aiJudgment.timestamp,            color: 'emerald', txHash: escrow.aiJudgment.txHash });
+  if (escrow.completedAt)
+    events.push({ icon: '✅', label: 'Escrow Completed',                          timestamp: escrow.completedAt,                     color: 'purple' });
+
+  // Milestone events
+  (escrow.milestones || []).forEach((ms, i) => {
+    const n = i + 1;
+    if (ms.releaseTxHash)
+      events.push({ icon: '💰', label: `Milestone ${n} Released — ${ms.amount} USDC`,
+        timestamp: ms.proof?.submittedAt, color: 'emerald', txHash: ms.releaseTxHash });
+    if (ms.disputedAt)
+      events.push({ icon: '⚠️', label: `Dispute Opened — Milestone ${n}`,
+        timestamp: ms.disputedAt, color: 'red' });
+    if (ms.defenseSubmittedAt)
+      events.push({ icon: '🛡️', label: `Defense Submitted — Milestone ${n}`,
+        timestamp: ms.defenseSubmittedAt, color: 'purple' });
+    if (ms.aiJudgment?.txHash)
+      events.push({ icon: '🤖', label: `AI Verdict: ${ms.aiJudgment.verdict} — Milestone ${n}`,
+        timestamp: ms.aiJudgment.timestamp, color: 'amber', txHash: ms.aiJudgment.txHash });
+  });
+
+  return events
+    .filter(e => e.timestamp)
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 }
 
 function TransactionDetails({ tx }) {
@@ -145,7 +185,7 @@ function TransactionDetails({ tx }) {
         <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-400">{tx.state}</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
         <div>
           <p className="text-slate-500 mb-0.5">Amount</p>
           <p className="font-semibold text-emerald-400">{tx.amount} USDC</p>
@@ -192,6 +232,8 @@ export default function EscrowDetail() {
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [showSellerModal,  setShowSellerModal]  = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  // null = still checking, true = confirmed in current contract, false = not found
+  const [contractLive, setContractLive] = useState(null);
 
   const fetchEscrow = useCallback(async () => {
     const res = await fetch(`/api/escrow/${id}`);
@@ -202,14 +244,35 @@ export default function EscrowDetail() {
 
   useEffect(() => { fetchEscrow(); }, [fetchEscrow]);
 
+  // Verify the escrow actually exists in the *current* deployed contract.
+  // Uses a read-only provider so no wallet connection is required.
+  useEffect(() => {
+    if (!escrow) return;
+    if (!escrow.contractId) { setContractLive(false); return; }
+    const readProvider = new ethers.JsonRpcProvider(ARC_RPC);
+    const c = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, readProvider);
+    const bytes32Id = toBytes32(escrow.id);
+    console.log('[contractLive] checking escrowExists for', escrow.id, bytes32Id);
+    c.escrowExists(bytes32Id)
+      .then(exists => {
+        console.log('[contractLive] escrowExists returned:', exists, 'for', escrow.id);
+        setContractLive(exists);
+      })
+      .catch(err => {
+        // RPC error (network down, etc.) → treat as existing so users aren't permanently blocked.
+        console.warn('[contractLive] escrowExists RPC error, defaulting to true:', err.message);
+        setContractLive(true);
+      });
+  }, [escrow?.id]);
+
   async function doAction(action, body = {}) {
     if (!address) { await connect(); return; }
     setActionLoading(action);
     try {
-      const res = await fetch(`/api/escrow/${id}/${action}`, {
+      const res = await fetch(`/api/escrow/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...body, address }),
+        body: JSON.stringify({ action, ...body, address }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Action failed');
@@ -253,20 +316,36 @@ export default function EscrowDetail() {
       const receipt   = await depositTx.wait();
       console.log('[deposit] 9. deposit confirmed — receipt:', receipt.hash);
 
-      console.log('[deposit] 10. syncing off-chain status');
-      await fetch(`/api/escrow/${id}/deposit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txHash: receipt.hash }),
-      });
-      console.log('[deposit] 11. done');
+      // On-chain tx is confirmed — always refresh the page regardless of storage sync outcome.
+      console.log('[deposit] 10. syncing off-chain status — escrow.id:', escrow?.id, '| useParams id:', id);
+      try {
+        const depositUrl = `/api/escrow/${id}`;
+        console.log('[deposit] 10a. fetch URL:', depositUrl, '(action: deposit)');
+        const syncRes = await fetch(depositUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'deposit', txHash: receipt.hash }),
+        });
+        if (!syncRes.ok) {
+          const body = await syncRes.json().catch(() => ({}));
+          console.warn('[deposit] storage sync failed —', syncRes.status, body.error);
+        }
+      } catch (syncErr) {
+        console.warn('[deposit] storage sync threw —', syncErr.message);
+      }
+
+      console.log('[deposit] 11. tx confirmed — calling fetchEscrow');
       await fetchEscrow();
+      console.log('[deposit] 12. fetchEscrow done — escrow status:', escrow?.status);
     } catch (e) {
       const reason = e.reason ?? e.revert?.args?.[0] ?? e.data ?? e.message;
       console.error('[confirmDeposit] error:', e.message);
       console.error('[confirmDeposit] revert reason:', reason);
       console.error('[confirmDeposit] code:', e.code, '| tx:', e.transaction?.data?.slice(0, 10), '| receipt:', e.receipt);
       alert(`Deposit failed: ${reason}`);
+      // Refresh even on failure — if the tx already landed on-chain (e.g. "Not pending"
+      // on retry), the page needs to reflect whatever state storage has now.
+      await fetchEscrow().catch(() => {});
     } finally {
       setActionLoading('');
     }
@@ -276,10 +355,10 @@ export default function EscrowDetail() {
     if (!proofForm.description && !proofForm.url) return alert('Provide a description or URL');
     setActionLoading('proof');
     try {
-      const res = await fetch(`/api/escrow/${id}/proof`, {
+      const res = await fetch(`/api/escrow/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...proofForm, submitterAddress: address }),
+        body: JSON.stringify({ action: 'proof', ...proofForm, submitterAddress: address }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
@@ -302,13 +381,18 @@ export default function EscrowDetail() {
       const contract  = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
       const bytes32Id = toBytes32(escrow.id);
 
-      // Check on-chain state to skip a redundant tx (e.g. tx mined but client missed receipt).
-      // If getEscrow fails (escrow not yet registered on this contract), go straight to approve.
+      // Check on-chain state to detect prior approvals and confirm the escrow exists.
       let alreadyOnChain = false;
       try {
         const onChain = await contract.getEscrow(bytes32Id);
         alreadyOnChain = isBuyer ? onChain.buyerApproved : onChain.sellerApproved;
-      } catch { /* escrow not on-chain yet — proceed with approve */ }
+      } catch {
+        // getEscrow reverted — escrow is not in this contract (redeployed or never registered).
+        throw new Error(
+          'This escrow is not registered in the current contract. It was likely created on a ' +
+          'previous deployment. Contract actions are not available for this escrow.'
+        );
+      }
 
       let txHash = null;
       if (!alreadyOnChain) {
@@ -318,10 +402,10 @@ export default function EscrowDetail() {
       }
 
       // Sync approval to off-chain storage
-      const res  = await fetch(`/api/escrow/${id}/approve`, {
+      const res  = await fetch(`/api/escrow/${id}`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ address, txHash }),
+        body:    JSON.stringify({ action: 'approve', address, txHash }),
       });
       const data = await res.json();
       await fetchEscrow();
@@ -366,14 +450,18 @@ export default function EscrowDetail() {
   const myRole = isBuyer ? 'buyer' : isSeller ? 'seller' : 'observer';
   const myApproval = isBuyer ? escrow.buyer.approved : isSeller ? escrow.seller.approved : false;
 
-  const canSubmitProof = isSeller && ['active', 'proof_submitted'].includes(escrow.status) && escrow.mode !== 'simple';
-  const canApprove = isParty && !myApproval && ['active', 'proof_submitted'].includes(escrow.status);
-  const canDispute = isParty && ['active', 'proof_submitted'].includes(escrow.status);
-  const canConfirmDeposit = isBuyer && escrow.status === 'pending_deposit';
-  const canSubmitDefense  = isSeller && escrow.status === 'awaiting_seller_response' && !escrow.seller?.disputeClaim;
+  // contractLive: null=still checking (block), true=confirmed in contract, false=not found
+  const isOnChain = !!escrow.contractId && contractLive === true;
 
-  const MODE_ICONS = { service: '🤝', nft_swap: '🔄', nft_sale: '🖼️', milestone: '🏁', simple: '💸' };
-  const MODE_LABELS = { service: 'Service & Product', nft_swap: 'NFT Swap', nft_sale: 'NFT Sale', milestone: 'Milestone', simple: 'Simple Transfer' };
+  const isMilestone       = escrow.mode === 'milestone';
+  const canSubmitProof    = isSeller && ['active', 'proof_submitted'].includes(escrow.status) && !isMilestone && escrow.mode !== 'simple';
+  const canApprove        = isOnChain && isParty && !myApproval && ['active', 'proof_submitted'].includes(escrow.status) && !isMilestone;
+  const canDispute        = isOnChain && isParty && ['active', 'proof_submitted'].includes(escrow.status) && !isMilestone;
+  const canConfirmDeposit = isOnChain && isBuyer && escrow.status === 'pending_deposit';
+  const canSubmitDefense  = isSeller && ['awaiting_seller_response', 'disputed'].includes(escrow.status);
+
+  const MODE_ICONS = { service: '🤝', milestone: '🏁', simple: '💸' };
+  const MODE_LABELS = { service: 'Service & Product', milestone: 'Milestone', simple: 'Simple Transfer' };
 
   return (
     <div className="min-h-screen">
@@ -382,7 +470,7 @@ export default function EscrowDetail() {
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-8">
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <Link href="/" className="text-xs text-slate-500 hover:text-slate-300">← Dashboard</Link>
               <span className="text-slate-700">/</span>
@@ -392,7 +480,7 @@ export default function EscrowDetail() {
               <span className="text-3xl">{MODE_ICONS[escrow.mode]}</span>
               <div>
                 <h1 className="text-2xl font-bold text-white">{escrow.title}</h1>
-                <p className="text-sm text-slate-500">{MODE_LABELS[escrow.mode]} · Created {new Date(escrow.createdAt).toLocaleDateString()}</p>
+                <p className="text-sm text-slate-500">{MODE_LABELS[escrow.mode] || 'Escrow'} · Created {new Date(escrow.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
           </div>
@@ -427,9 +515,7 @@ export default function EscrowDetail() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-white/3 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-slate-500 uppercase">
-                      {escrow.mode === 'nft_swap' ? 'Party A' : 'Buyer'}
-                    </span>
+                    <span className="text-xs font-semibold text-slate-500 uppercase">Buyer</span>
                     {escrow.buyer.approved
                       ? <span className="text-xs text-emerald-400 font-semibold">✓ Approved</span>
                       : <span className="text-xs text-slate-600">Pending</span>}
@@ -441,9 +527,7 @@ export default function EscrowDetail() {
                 </div>
                 <div className="bg-white/3 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-slate-500 uppercase">
-                      {escrow.mode === 'nft_swap' ? 'Party B' : 'Seller'}
-                    </span>
+                    <span className="text-xs font-semibold text-slate-500 uppercase">Seller</span>
                     {escrow.seller.approved
                       ? <span className="text-xs text-emerald-400 font-semibold">✓ Approved</span>
                       : <span className="text-xs text-slate-600">Pending</span>}
@@ -459,10 +543,11 @@ export default function EscrowDetail() {
             {/* Amount */}
             <Section title="Escrow Details">
               <div>
-                <p className="text-xs text-slate-500 mb-1">
-                  {escrow.mode === 'nft_swap' ? 'USDC Sweetener' : 'Amount'}
-                </p>
+                <p className="text-xs text-slate-500 mb-1">Amount</p>
                 <p className="text-2xl font-bold text-emerald-400">{escrow.amount} USDC</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Platform fee: 2.5% · Seller receives: <span className="text-slate-300">{(parseFloat(escrow.amount) * 0.975).toFixed(2)} USDC</span>
+                </p>
               </div>
               {escrow.description && (
                 <div className="mt-4 pt-4 border-t border-white/5">
@@ -487,28 +572,6 @@ export default function EscrowDetail() {
               )}
             </Section>
 
-            {/* NFT details */}
-            {(escrow.mode === 'nft_swap' || escrow.mode === 'nft_sale') && escrow.nftA && (
-              <Section title="NFT Details">
-                <div className={`grid ${escrow.mode === 'nft_swap' ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
-                  <div className="bg-white/3 rounded-lg p-4">
-                    <p className="text-xs font-semibold text-purple-400 mb-2">
-                      {escrow.mode === 'nft_sale' ? 'NFT For Sale' : 'Party A NFT'}
-                    </p>
-                    <p className="text-sm font-bold text-white">{escrow.nftA.collection} #{escrow.nftA.tokenId}</p>
-                    {escrow.nftA.description && <p className="text-xs text-slate-400 mt-1">{escrow.nftA.description}</p>}
-                  </div>
-                  {escrow.mode === 'nft_swap' && escrow.nftB && (
-                    <div className="bg-white/3 rounded-lg p-4">
-                      <p className="text-xs font-semibold text-blue-400 mb-2">Party B NFT</p>
-                      <p className="text-sm font-bold text-white">{escrow.nftB.collection} #{escrow.nftB.tokenId}</p>
-                      {escrow.nftB.description && <p className="text-xs text-slate-400 mt-1">{escrow.nftB.description}</p>}
-                    </div>
-                  )}
-                </div>
-              </Section>
-            )}
-
             {/* Proof submitted */}
             {escrow.proof && (
               <Section title="Submitted Proof">
@@ -528,21 +591,46 @@ export default function EscrowDetail() {
               <AIJudgmentPanel judgment={escrow.aiJudgment} title="AI Judge Evaluation" />
             )}
 
-            {/* Milestones */}
-            {escrow.mode === 'milestone' && escrow.milestones?.length > 0 && (
-              <Section title="Milestones">
-                <MilestoneList
-                  milestones={escrow.milestones}
-                  escrowId={escrow.id}
-                  sellerAddress={escrow.seller.address}
-                  walletAddress={address}
-                  onUpdate={fetchEscrow}
-                />
-              </Section>
-            )}
+            {/* Milestone progress summary (overview only — full list is in Actions tab) */}
+            {isMilestone && escrow.milestones?.length > 0 && (() => {
+              const done     = escrow.milestones.filter(m => m.status === 'approved').length;
+              const total    = escrow.milestones.length;
+              const released = escrow.milestones.filter(m => m.status === 'approved').reduce((s, m) => s + parseFloat(m.amount || 0), 0);
+              return (
+                <Section title="Milestone Progress">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-400"><span className="text-white font-semibold">{done}</span> / {total} complete</span>
+                      <span><span className="text-emerald-400 font-semibold">{released.toFixed(2)}</span><span className="text-slate-500"> / {parseFloat(escrow.amount || 0).toFixed(2)} USDC</span></span>
+                    </div>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${total > 0 ? (done / total) * 100 : 0}%` }} />
+                    </div>
+                    <div className="space-y-1.5">
+                      {escrow.milestones.map((ms, i) => {
+                        const isRefunded = ms.status === 'rejected' && !!ms.aiJudgment?.disputeResolution;
+                        return (
+                          <div key={ms.id} className="flex items-center gap-2 text-xs">
+                            <span className={
+                              ms.status === 'approved' ? 'text-emerald-400' :
+                              isRefunded                ? 'text-slate-500'   :
+                              ms.status === 'disputed'  ? 'text-red-400'     : 'text-slate-600'
+                            }>
+                              {ms.status === 'approved' ? '✓' : isRefunded ? '↩' : ms.status === 'disputed' ? '⚠' : '○'}
+                            </span>
+                            <span className={ms.status === 'approved' || isRefunded ? 'text-slate-300' : 'text-slate-500'}>{ms.title}</span>
+                            <span className="ml-auto text-slate-600">{ms.amount} USDC</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </Section>
+              );
+            })()}
 
-            {/* Dispute claims */}
-            {['disputed', 'awaiting_seller_response'].includes(escrow.status) && (
+            {/* Dispute claims — show for all dispute-related states, including resolved */}
+            {(escrow.buyer?.disputeClaim || ['disputed', 'awaiting_seller_response'].includes(escrow.status)) && (
               <Section title="Dispute">
                 {escrow.status === 'awaiting_seller_response' && escrow.disputeDeadline && (
                   <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-amber-400/5 border border-amber-400/20 mb-4">
@@ -565,7 +653,9 @@ export default function EscrowDetail() {
                   <p className="text-xs text-slate-500 mt-1">
                     {escrow.status === 'awaiting_seller_response'
                       ? 'Waiting for seller to submit their defense…'
-                      : 'Seller has not submitted a claim.'}
+                      : escrow.status === 'disputed'
+                        ? 'Seller has not submitted a defense yet.'
+                        : null}
                   </p>
                 )}
               </Section>
@@ -583,6 +673,70 @@ export default function EscrowDetail() {
                   Connect Wallet
                 </button>
               </div>
+            )}
+
+            {/* Waiting for on-chain existence check */}
+            {escrow.contractId && contractLive === null && isParty && (
+              <div className="glass rounded-xl p-5 flex items-center gap-3">
+                <span className="w-4 h-4 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin shrink-0" />
+                <p className="text-sm text-slate-400">Verifying on-chain status…</p>
+              </div>
+            )}
+
+            {/* No contractId at all — creation-time failure or pre-contract era */}
+            {!escrow.contractId && isParty && (
+              <div className="glass rounded-xl p-5 border border-amber-500/30 bg-amber-400/5">
+                <div className="flex items-start gap-3">
+                  <span className="text-amber-400 text-xl shrink-0">⚠</span>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-400 mb-1">No on-chain record</p>
+                    <p className="text-sm text-slate-300">
+                      This escrow was created before on-chain registration was available, or the
+                      contract transaction failed at creation time. It has no smart-contract record
+                      and cannot interact with the blockchain. Deposit, approve, and dispute actions
+                      are disabled.
+                    </p>
+                    {escrow.contractWarning && (
+                      <p className="text-xs text-slate-500 font-mono mt-2 break-all">{escrow.contractWarning}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* contractId exists but the current contract doesn't recognise it */}
+            {escrow.contractId && contractLive === false && isParty && (
+              <div className="glass rounded-xl p-5 border border-red-500/30 bg-red-400/5">
+                <div className="flex items-start gap-3">
+                  <span className="text-red-400 text-xl shrink-0">⚠</span>
+                  <div>
+                    <p className="text-sm font-semibold text-red-400 mb-1">Contract deployment mismatch</p>
+                    <p className="text-sm text-slate-300">
+                      This escrow was registered on a previous contract deployment. The current
+                      contract at <span className="font-mono text-xs">{CONTRACT_ADDRESS}</span> has
+                      no record of it, so deposit, approve, and dispute actions are disabled to
+                      prevent failed transactions.
+                    </p>
+                    <p className="text-xs text-slate-500 font-mono mt-2 break-all">
+                      Stored ID: {escrow.contractId}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Milestone mode — full interactive list */}
+            {isMilestone && escrow.milestones?.length > 0 && ['active', 'completed'].includes(escrow.status) && isParty && (
+              <Section title="Milestones">
+                <MilestoneList
+                  milestones={escrow.milestones}
+                  escrowId={escrow.id}
+                  sellerAddress={escrow.seller.address}
+                  buyerAddress={escrow.buyer.address}
+                  walletAddress={address}
+                  onUpdate={fetchEscrow}
+                />
+              </Section>
             )}
 
             {/* Deposit confirmation */}
@@ -721,7 +875,7 @@ export default function EscrowDetail() {
             )}
 
             {/* Awaiting seller — buyer view */}
-            {isBuyer && escrow.status === 'awaiting_seller_response' && (
+            {isBuyer && ['awaiting_seller_response', 'disputed'].includes(escrow.status) && !escrow.seller?.disputeClaim && (
               <div className="glass rounded-xl p-5 space-y-2">
                 <p className="text-sm font-semibold text-amber-400">⏳ Awaiting Seller Defense</p>
                 {escrow.disputeDeadline && (
@@ -731,7 +885,9 @@ export default function EscrowDetail() {
                   </div>
                 )}
                 <p className="text-xs text-slate-500">
-                  If the seller does not respond in time, the dispute auto-resolves in your favor.
+                  {escrow.disputeDeadline
+                    ? 'If the seller does not respond in time, the dispute auto-resolves in your favor.'
+                    : 'Waiting for the seller to submit their defense.'}
                 </p>
               </div>
             )}
@@ -751,8 +907,9 @@ export default function EscrowDetail() {
             )}
 
             {/* No actions */}
-            {address && !canConfirmDeposit && !canSubmitProof && !canApprove && !canDispute &&
-             !canSubmitDefense && !(isBuyer && escrow.status === 'awaiting_seller_response') &&
+            {address && !isMilestone && !canConfirmDeposit && !canSubmitProof && !canApprove && !canDispute &&
+             !canSubmitDefense &&
+             !(isBuyer && ['awaiting_seller_response', 'disputed'].includes(escrow.status) && !escrow.seller?.disputeClaim) &&
              escrow.status !== 'completed' && !myApproval && (
               <div className="glass rounded-xl p-6 text-center">
                 <p className="text-slate-400 text-sm">No actions available in the current state.</p>
@@ -764,22 +921,26 @@ export default function EscrowDetail() {
         {/* History Tab */}
         {activeTab === 'history' && (
           <div className="space-y-3">
-            {[
-              escrow.completedAt && { icon: '✅', label: 'Escrow Completed', time: escrow.completedAt, color: 'text-purple-400' },
-              escrow.aiJudgment?.timestamp && { icon: '🤖', label: `AI Verdict: ${escrow.aiJudgment.verdict}`, time: escrow.aiJudgment.timestamp, color: 'text-emerald-400' },
-              escrow.seller?.disputeClaim && escrow.updatedAt && { icon: '🛡', label: 'Seller Defense Submitted', time: escrow.updatedAt, color: 'text-purple-400' },
-              escrow.disputedAt && { icon: '⚖', label: 'Dispute Raised', time: escrow.disputedAt, color: 'text-red-400' },
-              escrow.proof?.submittedAt && { icon: '📋', label: 'Proof Submitted', time: escrow.proof.submittedAt, color: 'text-blue-400' },
-              { icon: '🔒', label: 'Escrow Created', time: escrow.createdAt, color: 'text-slate-400' },
-            ].filter(Boolean).map((event, i) => (
-              <div key={i} className="glass rounded-xl p-4 flex items-center gap-4">
-                <span className="text-xl">{event.icon}</span>
-                <div className="flex-1">
-                  <p className={`text-sm font-semibold ${event.color}`}>{event.label}</p>
-                  <p className="text-xs text-slate-600">{new Date(event.time).toLocaleString()}</p>
+            {buildHistoryEvents(escrow).map((event, i) =>
+              event.txHash ? (
+                <div key={i} className="glass rounded-xl px-4">
+                  <TxRow
+                    name={event.label}
+                    desc={new Date(event.timestamp).toLocaleString()}
+                    txHash={event.txHash}
+                    color={event.color}
+                  />
                 </div>
-              </div>
-            ))}
+              ) : (
+                <div key={i} className="glass rounded-xl p-4 flex items-start gap-4">
+                  <span className="text-xl shrink-0">{event.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-semibold ${COLOR_MAP[event.color]?.text ?? 'text-slate-400'}`}>{event.label}</p>
+                    <p className="text-xs text-slate-600">{new Date(event.timestamp).toLocaleString()}</p>
+                  </div>
+                </div>
+              )
+            )}
 
             {escrow.releaseTx && (
               <div className="glass rounded-xl p-5">

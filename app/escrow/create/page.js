@@ -13,20 +13,6 @@ const MODES = [
     gradient: 'from-purple-600/30 to-blue-600/30',
   },
   {
-    id: 'nft_swap',
-    label: 'NFT Swap',
-    icon: '🔄',
-    desc: 'Party A locks NFT + optional USDC. Party B locks NFT. Claude evaluates fair value.',
-    gradient: 'from-pink-600/30 to-purple-600/30',
-  },
-  {
-    id: 'nft_sale',
-    label: 'NFT Sale',
-    icon: '🖼️',
-    desc: 'Seller locks NFT. Buyer locks USDC. Claude verifies price fairness.',
-    gradient: 'from-orange-600/30 to-pink-600/30',
-  },
-  {
     id: 'milestone',
     label: 'Milestone Escrow',
     icon: '🏁',
@@ -56,7 +42,7 @@ function Input(props) {
   return (
     <input
       {...props}
-      className={`w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-600 ${props.className || ''}`}
+      className={`w-full bg-white/5 border border-white/10 rounded-lg px-3 py-3 text-sm text-white placeholder-slate-600 ${props.className || ''}`}
     />
   );
 }
@@ -65,7 +51,7 @@ function Textarea(props) {
   return (
     <textarea
       {...props}
-      className={`w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none ${props.className || ''}`}
+      className={`w-full bg-white/5 border border-white/10 rounded-lg px-3 py-3 text-sm text-white placeholder-slate-600 resize-none ${props.className || ''}`}
     />
   );
 }
@@ -80,9 +66,6 @@ export default function CreateEscrow() {
   const [milestones, setMilestones] = useState([{ title: '', description: '', amount: '' }]);
   const [form, setForm] = useState({
     title: '', description: '', requirements: '', amount: '', buyer: '', seller: '',
-    nftACollection: '', nftATokenId: '', nftADescription: '',
-    nftBCollection: '', nftBTokenId: '', nftBDescription: '',
-    additionalUSDC: '0',
   });
 
   function setField(k, v) { setForm(f => ({ ...f, [k]: v })); }
@@ -107,7 +90,7 @@ export default function CreateEscrow() {
       title: form.title,
       description: form.description,
       requirements: form.requirements,
-      buyer: mode === 'nft_sale' ? form.buyer : (form.buyer || address),
+      buyer: form.buyer || address,
       seller: form.seller,
     };
 
@@ -116,14 +99,6 @@ export default function CreateEscrow() {
     } else if (mode === 'milestone') {
       payload.amount = totalMilestoneAmount.toFixed(2);
       payload.milestones = milestones;
-    } else if (mode === 'nft_swap') {
-      payload.nftA = { collection: form.nftACollection, tokenId: form.nftATokenId, description: form.nftADescription };
-      payload.nftB = { collection: form.nftBCollection, tokenId: form.nftBTokenId, description: form.nftBDescription };
-      payload.additionalUSDC = form.additionalUSDC || '0';
-      payload.amount = form.additionalUSDC || '0';
-    } else if (mode === 'nft_sale') {
-      payload.nftA = { collection: form.nftACollection, tokenId: form.nftATokenId, description: form.nftADescription };
-      payload.amount = form.amount;
     }
 
     setLoading(true);
@@ -213,7 +188,7 @@ export default function CreateEscrow() {
 
               {/* Parties */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label={mode === 'nft_swap' ? 'Party A Address' : 'Buyer Address'}
+                <Field label="Buyer Address"
                   hint={`${address ? 'Leave blank to use your connected wallet' : 'Connect wallet or enter manually'}`}>
                   <Input
                     placeholder={address || '0x…'}
@@ -221,13 +196,12 @@ export default function CreateEscrow() {
                     onChange={e => setField('buyer', e.target.value)}
                   />
                 </Field>
-                <Field label={mode === 'nft_swap' ? 'Party B Address' : 'Seller Address'}>
+                <Field label="Seller Address">
                   <Input placeholder="0x…" value={form.seller} onChange={e => setField('seller', e.target.value)} />
                 </Field>
               </div>
 
-              {/* Service / NFT Sale / Simple amount */}
-              {(mode === 'service' || mode === 'nft_sale' || mode === 'simple') && (
+              {(mode === 'service' || mode === 'simple') && (
                 <Field label="USDC Amount" hint="Amount to lock in escrow">
                   <div className="relative">
                     <Input type="number" placeholder="100.00" value={form.amount}
@@ -235,57 +209,6 @@ export default function CreateEscrow() {
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">USDC</span>
                   </div>
                 </Field>
-              )}
-
-              {/* NFT A */}
-              {(mode === 'nft_swap' || mode === 'nft_sale') && (
-                <div className="glass rounded-xl p-4 space-y-3">
-                  <p className="text-sm font-semibold text-slate-300">
-                    {mode === 'nft_sale' ? 'NFT for Sale (Seller)' : 'NFT A (Party A)'}
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="Collection Name">
-                      <Input placeholder="e.g. BoredApes" value={form.nftACollection}
-                        onChange={e => setField('nftACollection', e.target.value)} />
-                    </Field>
-                    <Field label="Token ID">
-                      <Input placeholder="e.g. 4201" value={form.nftATokenId}
-                        onChange={e => setField('nftATokenId', e.target.value)} />
-                    </Field>
-                  </div>
-                  <Field label="Description / Traits">
-                    <Input placeholder="Describe the NFT for AI valuation" value={form.nftADescription}
-                      onChange={e => setField('nftADescription', e.target.value)} />
-                  </Field>
-                </div>
-              )}
-
-              {/* NFT B (swap only) */}
-              {mode === 'nft_swap' && (
-                <div className="glass rounded-xl p-4 space-y-3">
-                  <p className="text-sm font-semibold text-slate-300">NFT B (Party B)</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="Collection Name">
-                      <Input placeholder="e.g. CryptoPunks" value={form.nftBCollection}
-                        onChange={e => setField('nftBCollection', e.target.value)} />
-                    </Field>
-                    <Field label="Token ID">
-                      <Input placeholder="e.g. 7734" value={form.nftBTokenId}
-                        onChange={e => setField('nftBTokenId', e.target.value)} />
-                    </Field>
-                  </div>
-                  <Field label="Description / Traits">
-                    <Input placeholder="Describe Party B's NFT" value={form.nftBDescription}
-                      onChange={e => setField('nftBDescription', e.target.value)} />
-                  </Field>
-                  <Field label="USDC Sweetener (optional)" hint="Additional USDC from Party A to balance the swap">
-                    <div className="relative">
-                      <Input type="number" placeholder="0" value={form.additionalUSDC}
-                        onChange={e => setField('additionalUSDC', e.target.value)} className="pr-16" />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">USDC</span>
-                    </div>
-                  </Field>
-                </div>
               )}
 
               {/* Milestones */}
@@ -332,7 +255,7 @@ export default function CreateEscrow() {
 
             <button
               onClick={() => setStep(3)}
-              disabled={!form.title || !form.seller || (['service', 'simple', 'nft_sale'].includes(mode) && !form.amount)}
+              disabled={!form.title || !form.seller || (['service', 'simple'].includes(mode) && !form.amount)}
               className="btn-primary w-full mt-8 py-3 rounded-xl font-semibold"
             >
               Review →
@@ -364,11 +287,11 @@ export default function CreateEscrow() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-slate-500 mb-1">{mode === 'nft_swap' ? 'Party A' : 'Buyer'}</p>
+                  <p className="text-xs text-slate-500 mb-1">Buyer</p>
                   <p className="text-xs font-mono text-slate-300">{form.buyer || address || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 mb-1">{mode === 'nft_swap' ? 'Party B' : 'Seller'}</p>
+                  <p className="text-xs text-slate-500 mb-1">Seller</p>
                   <p className="text-xs font-mono text-slate-300">{form.seller}</p>
                 </div>
               </div>
@@ -376,22 +299,19 @@ export default function CreateEscrow() {
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Escrow Amount</p>
                   <p className="text-xl font-bold text-emerald-400">{form.amount} USDC</p>
+                  <p className="text-xs text-slate-500 mt-1">Platform fee: 2.5% deducted from seller payment upon release</p>
                 </div>
               )}
               {mode === 'milestone' && (
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Total ({milestones.length} milestones)</p>
                   <p className="text-xl font-bold text-emerald-400">{totalMilestoneAmount.toFixed(2)} USDC</p>
+                  <p className="text-xs text-slate-500 mt-1">Platform fee: 2.5% deducted from seller payment upon release</p>
                 </div>
               )}
             </div>
 
-            {mode === 'nft_swap' || mode === 'nft_sale' ? (
-              <div className="glass rounded-xl p-4 mb-6 text-sm text-slate-400">
-                <p className="font-semibold text-amber-400 mb-1">⚡ AI Evaluation at Creation</p>
-                <p>Claude will immediately evaluate NFT fair value when you create this escrow.</p>
-              </div>
-            ) : mode === 'simple' ? (
+            {mode === 'simple' ? (
               <div className="glass rounded-xl p-4 mb-6 text-sm text-slate-400">
                 <p className="font-semibold text-emerald-400 mb-1">💸 Simple Mutual Approval</p>
                 <p>Send <strong className="text-white">{form.amount} USDC</strong> to the escrow wallet, then both parties approve to release. No AI judge needed.</p>
@@ -411,7 +331,7 @@ export default function CreateEscrow() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {mode === 'nft_swap' || mode === 'nft_sale' ? 'Creating & Evaluating with AI…' : 'Creating Escrow…'}
+                  Creating Escrow…
                 </span>
               ) : !address ? 'Connect Wallet to Create' : 'Create Escrow'}
             </button>
@@ -464,7 +384,7 @@ export default function CreateEscrow() {
                 View Escrow →
               </button>
               <button
-                onClick={() => { setStep(1); setMode(null); setCreatedEscrow(null); setForm({ title:'',description:'',requirements:'',amount:'',buyer:'',seller:'',nftACollection:'',nftATokenId:'',nftADescription:'',nftBCollection:'',nftBTokenId:'',nftBDescription:'',additionalUSDC:'0' }); setMilestones([{ title:'',description:'',amount:'' }]); }}
+                onClick={() => { setStep(1); setMode(null); setCreatedEscrow(null); setForm({ title:'',description:'',requirements:'',amount:'',buyer:'',seller:'' }); setMilestones([{ title:'',description:'',amount:'' }]); }}
                 className="glass px-6 py-3 rounded-xl font-semibold text-sm text-slate-300"
               >
                 Create Another

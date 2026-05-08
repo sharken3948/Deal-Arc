@@ -5,7 +5,7 @@ import Navbar from '@/app/components/Navbar';
 import EscrowCard from '@/app/components/EscrowCard';
 import { useWallet } from '@/app/contexts/WalletContext';
 
-const FILTERS = ['all', 'active', 'pending_deposit', 'proof_submitted', 'disputed', 'completed'];
+const FILTERS = ['all', 'active', 'pending_deposit', 'proof_submitted', 'awaiting_seller_response', 'disputed', 'completed'];
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS;
 const ARC_EXPLORER     = 'https://testnet.arcscan.app';
@@ -55,7 +55,7 @@ export default function Dashboard() {
     .filter(e => e.status === 'completed')
     .reduce((s, e) => s + parseFloat(e.amount || 0), 0);
   const activeCount = myEscrows.filter(e => ['active', 'proof_submitted'].includes(e.status)).length;
-  const disputedCount = myEscrows.filter(e => e.status === 'disputed').length;
+  const disputedCount = myEscrows.filter(e => ['disputed', 'awaiting_seller_response'].includes(e.status)).length;
 
   return (
     <div className="min-h-screen">
@@ -65,7 +65,7 @@ export default function Dashboard() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-blue-900/15 pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-6 py-16">
+        <div className="max-w-7xl mx-auto px-6 py-8 sm:py-16">
           <div className="mb-10">
             <p className="text-xs font-semibold text-purple-400 uppercase tracking-widest mb-3">
               Powered by Circle W3S · Claude AI
@@ -75,7 +75,7 @@ export default function Dashboard() {
               <br />
               <span className="text-white">AI-Powered Escrow</span>
             </h1>
-            <p className="text-lg font-semibold italic whitespace-nowrap bg-gradient-to-r from-purple-400 via-violet-400 to-purple-300 bg-clip-text text-transparent">
+            <p className="text-lg font-semibold italic bg-gradient-to-r from-purple-400 via-violet-400 to-purple-300 bg-clip-text text-transparent">
               "Set your terms. Lock assets. Shake hands on-chain. Disagree? AI judge rules no exceptions."
             </p>
             <div className="flex gap-3 mt-6">
@@ -106,7 +106,7 @@ export default function Dashboard() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
+              className={`shrink-0 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors capitalize ${
                 filter === f
                   ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30'
                   : 'text-slate-500 hover:text-slate-300 glass'

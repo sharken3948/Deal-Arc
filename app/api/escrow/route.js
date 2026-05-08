@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
-import { judgeNFTSwap, judgeNFTSale } from '@/lib/claude';
 import { createEscrowOnChain } from '@/lib/contract';
 
 export async function GET() {
@@ -11,7 +10,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { mode, title, description, requirements, amount, buyer, seller, milestones, nftA, nftB, additionalUSDC } = body;
+    const { mode, title, description, requirements, amount, buyer, seller, milestones } = body;
 
     if (!mode || !title || !buyer || !seller) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
@@ -47,33 +46,25 @@ export async function POST(request) {
             aiJudgment:  null,
           }))
         : [],
-      nftA:           nftA           || null,
-      nftB:           nftB           || null,
-      additionalUSDC: additionalUSDC || '0',
       transactionIds: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    if (mode === 'nft_swap' && nftA && nftB) {
-      try { escrow.aiJudgment = await judgeNFTSwap({ nftA, nftB, additionalUSDC }); }
-      catch (e) { console.error('NFT swap AI error:', e.message); }
-    }
-    if (mode === 'nft_sale' && nftA) {
-      try { escrow.aiJudgment = await judgeNFTSale({ nftDetails: nftA, price: amount, description }); }
-      catch (e) { console.error('NFT sale AI error:', e.message); }
-    }
-
     await storage.create(escrow);
 
-    if (mode !== 'milestone' && parseFloat(resolvedAmount) > 0) {
+    if (parseFloat(resolvedAmount) > 0) {
       try {
+        const milestoneAmounts = mode === 'milestone'
+          ? (milestones || []).map(m => m.amount)
+          : [];
         const onChain = await createEscrowOnChain({
           uuid:   escrow.id,
           buyer:  escrow.buyer.address,
           seller: escrow.seller.address,
           amount: resolvedAmount,
           mode,
+          milestoneAmounts,
         });
         await storage.update(escrow.id, { contractId: onChain.contractId, createTxHash: onChain.txHash });
         escrow.contractId   = onChain.contractId;

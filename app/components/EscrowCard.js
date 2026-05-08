@@ -3,8 +3,6 @@ import StatusBadge from './StatusBadge';
 
 const MODE_CONFIG = {
   service:   { label: 'Service & Product', icon: '🤝', gradient: 'from-purple-600/20 to-blue-600/20' },
-  nft_swap:  { label: 'NFT Swap',          icon: '🔄', gradient: 'from-pink-600/20 to-purple-600/20' },
-  nft_sale:  { label: 'NFT Sale',          icon: '🖼️', gradient: 'from-orange-600/20 to-pink-600/20' },
   milestone: { label: 'Milestone',         icon: '🏁', gradient: 'from-cyan-600/20 to-blue-600/20' },
   simple:    { label: 'Simple Transfer',   icon: '💸', gradient: 'from-emerald-600/20 to-teal-600/20' },
 };
@@ -45,11 +43,7 @@ export default function EscrowCard({ escrow }) {
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
           <div>
             <p className="text-xs text-slate-500 mb-0.5">Amount</p>
-            <p className="text-base font-bold text-white">
-              {escrow.mode === 'nft_swap' || escrow.mode === 'nft_sale'
-                ? escrow.amount !== '0' ? `${escrow.amount} USDC` : 'NFT Swap'
-                : `${escrow.amount} USDC`}
-            </p>
+            <p className="text-base font-bold text-white">{escrow.amount} USDC</p>
           </div>
           {escrow.mode === 'milestone' && milestoneTotal > 0 && (
             <div className="text-right">
@@ -79,8 +73,14 @@ export default function EscrowCard({ escrow }) {
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
-          <div><span className="text-slate-600">Buyer</span> <span className="font-mono">{truncate(escrow.buyer.address)}</span></div>
-          <div><span className="text-slate-600">Seller</span> <span className="font-mono">{truncate(escrow.seller.address)}</span></div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-slate-600">Buyer</span>
+            <span className="font-mono">{truncate(escrow.buyer.address)}</span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-slate-600">Seller</span>
+            <span className="font-mono">{truncate(escrow.seller.address)}</span>
+          </div>
         </div>
 
         <p className="text-xs text-slate-600 mt-2">{timeAgo(escrow.createdAt)}</p>

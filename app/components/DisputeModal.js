@@ -10,6 +10,17 @@ function toBytes32(uuid) {
   return ethers.keccak256(ethers.toUtf8Bytes(uuid));
 }
 
+// Derive a non-zero bytes32 evidence hash for the contract.
+// Prefers the IPFS CID when an image was uploaded, falls back to hashing the reason text.
+function toEvidenceHash(evidenceUrl, reason) {
+  if (evidenceUrl) {
+    // Extract CID from URLs like https://…/ipfs/<CID> or ipfs://<CID>
+    const cid = evidenceUrl.split('/ipfs/').pop().split('/')[0].split('?')[0];
+    return ethers.keccak256(ethers.toUtf8Bytes(cid || evidenceUrl));
+  }
+  return ethers.keccak256(ethers.toUtf8Bytes(reason.trim()));
+}
+
 export default function DisputeModal({ escrow, address, onClose, onResolved }) {
   const { provider, switchToARC } = useWallet();
   const [reason, setReason]       = useState('');
@@ -31,12 +42,13 @@ export default function DisputeModal({ escrow, address, onClose, onResolved }) {
 
       // 2. User signs contract.dispute() on-chain
       setStep('signing');
-      const prov   = getRabbyProvider() ?? provider;
+      const prov   = provider ?? getRabbyProvider();
       if (!prov) throw new Error('No wallet provider found. Is Rabby installed?');
       const signer = await new ethers.BrowserProvider(prov).getSigner();
       const contract  = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
-      const bytes32Id = toBytes32(escrow.id);
-      const tx        = await contract.dispute(bytes32Id);
+      const bytes32Id     = toBytes32(escrow.id);
+      const evidenceHash  = toEvidenceHash(evidenceUrl, reason);
+      const tx            = await contract.dispute(bytes32Id, evidenceHash);
       const receipt   = await tx.wait();
 
       // 3. Register dispute off-chain — seller now has 24h to respond

@@ -1,5 +1,23 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { ethers } from 'ethers';
+import { ESCROW_ABI, getRabbyProvider } from '@/lib/contractABI';
+import { useWallet } from '@/app/contexts/WalletContext';
+
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS;
+
+function toBytes32(uuid) {
+  return ethers.keccak256(ethers.toUtf8Bytes(uuid));
+}
+
+// Derives a non-zero bytes32 proof hash: IPFS CID when image was uploaded, else the claim text.
+function toDeliverableHash(evidenceUrl, claim) {
+  if (evidenceUrl) {
+    const cid = evidenceUrl.split('/ipfs/').pop().split('/')[0].split('?')[0];
+    return ethers.keccak256(ethers.toUtf8Bytes(cid || evidenceUrl));
+  }
+  return ethers.keccak256(ethers.toUtf8Bytes(claim.trim()));
+}
 
 function DeadlineCountdown({ deadline }) {
   const [text, setText] = useState('');
@@ -20,9 +38,10 @@ function DeadlineCountdown({ deadline }) {
 }
 
 export default function SellerResponseModal({ escrow, address, onClose, onResolved }) {
+  const { provider, switchToARC } = useWallet();
   const [claim, setClaim]       = useState('');
   const [evidence, setEvidence] = useState('');
-  const [step, setStep]         = useState('form'); // form | judging | done
+  const [step, setStep]         = useState('form'); // form | signing | judging | done
   const [error, setError]       = useState('');
   const [judgment, setJudgment] = useState(null);
   const [winner, setWinner]     = useState('');
@@ -52,12 +71,42 @@ export default function SellerResponseModal({ escrow, address, onClose, onResolv
   async function handleSubmit() {
     if (!claim.trim()) { setError('Please describe your defense.'); return; }
     setError('');
-    setStep('judging');
+
     try {
+      // 1. Anchor deliverable proof on-chain — required for oracle's resolve() to succeed
+      setStep('signing');
+      console.log('[defense] CONTRACT_ADDRESS:', CONTRACT_ADDRESS);
+      console.log('[defense] switchToARC starting…');
+      await switchToARC();
+      console.log('[defense] switchToARC done');
+      const prov   = provider ?? getRabbyProvider();
+      console.log('[defense] provider:', prov);
+      if (!prov) throw new Error('No wallet provider found. Is Rabby installed?');
+      const signer        = await new ethers.BrowserProvider(prov).getSigner();
+      console.log('[defense] signer:', signer);
+      const contract      = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
+      console.log('[defense] contract address:', contract.target);
+      const bytes32Id     = toBytes32(escrow.id);
+      const deliverableHash = toDeliverableHash(evidenceUrl, claim);
+      console.log('[defense] calling submitDeliverable with:', bytes32Id, deliverableHash);
+      const tx            = await contract.submitDeliverable(bytes32Id, deliverableHash);
+      console.log('[defense] tx sent:', tx.hash);
+      const receipt       = await tx.wait();
+      console.log('[defense] tx confirmed:', receipt.hash);
+
+      // 2. Submit defense text off-chain — triggers AI judge
+      setStep('judging');
       const res = await fetch('/api/dispute/respond', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: escrow.id, address, claim: claim.trim(), evidence: evidence.trim(), evidenceUrl: evidenceUrl || null }),
+        body: JSON.stringify({
+          id:            escrow.id,
+          address,
+          claim:         claim.trim(),
+          evidence:      evidence.trim(),
+          evidenceUrl:   evidenceUrl || null,
+          deliverableTxHash: receipt.hash,
+        }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to submit response');
@@ -189,10 +238,11 @@ export default function SellerResponseModal({ escrow, address, onClose, onResolv
 
             {error && <p className="text-xs text-red-400">{error}</p>}
 
-            {step === 'judging' && (
+            {(step === 'signing' || step === 'judging') && (
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <span className="w-4 h-4 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin shrink-0" />
-                AI judge is evaluating both sides…
+                {step === 'signing'  && 'Waiting for wallet confirmation…'}
+                {step === 'judging' && 'AI judge is evaluating both sides…'}
               </div>
             )}
 

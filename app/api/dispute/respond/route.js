@@ -81,11 +81,12 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Only the seller can respond to a dispute' }, { status: 403 });
   }
 
-  if (escrow.status !== 'awaiting_seller_response') {
-    return NextResponse.json({ success: false, error: `Escrow is not awaiting a seller response (status: ${escrow.status})` }, { status: 400 });
+  if (!['awaiting_seller_response', 'disputed'].includes(escrow.status)) {
+    return NextResponse.json({ success: false, error: `Escrow is not in a disputable state (status: ${escrow.status})` }, { status: 400 });
   }
 
-  if (new Date() > new Date(escrow.disputeDeadline)) {
+  // Only enforce deadline for the new flow where a deadline was set
+  if (escrow.disputeDeadline && new Date() > new Date(escrow.disputeDeadline)) {
     return NextResponse.json({ success: false, error: 'Response deadline has passed' }, { status: 400 });
   }
 
@@ -100,19 +101,24 @@ export async function POST(request) {
   const imageUrl = evidenceUrl || current.buyer.evidenceUrl || null;
 
   try {
+    console.log(`[dispute/respond] Running AI judge for escrow ${id}`);
     const judgment = await judgeDispute({
       escrow:     current,
       buyerClaim: current.buyer.disputeClaim,
       sellerClaim,
       evidenceUrl: imageUrl,
     });
+    console.log(`[dispute/respond] AI verdict: ${judgment.verdict} (${judgment.confidence}% confidence)`);
     await storage.update(id, { aiJudgment: judgment });
 
     const winner = judgment.verdict === 'FAVOR_BUYER' || judgment.awardBuyerPercent > 50
       ? current.buyer.address
       : current.seller.address;
+    console.log(`[dispute/respond] Winner: ${winner}`);
 
+    console.log(`[dispute/respond] Calling resolveOnChain — contract: ${process.env.ESCROW_CONTRACT_ADDRESS}`);
     const { txHash } = await resolveOnChain({ uuid: id, winner });
+    console.log(`[dispute/respond] resolveOnChain succeeded — txHash: ${txHash}`);
 
     await storage.update(id, {
       status:      'completed',
@@ -129,7 +135,8 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, judgment, winner, status: 'resolved' });
   } catch (error) {
-    console.error('[dispute/respond]', error);
+    console.error('[dispute/respond] FAILED at step after AI judgment:', error.message);
+    console.error('[dispute/respond] Full error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
