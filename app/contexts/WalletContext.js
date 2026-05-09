@@ -12,15 +12,34 @@ export function WalletProvider({ children }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [showModal, setShowModal]   = useState(false);
 
-  // Restore existing connection on mount
+  // Restore existing connection on mount and switch to ARC if needed
   useEffect(() => {
     const eth = getRabbyProvider();
     if (!eth) return;
     eth.request({ method: 'eth_accounts' })
-      .then(accounts => {
-        if (accounts[0]) {
-          setAddress(accounts[0]);
-          setProvider(eth);
+      .then(async accounts => {
+        if (!accounts[0]) return;
+        setAddress(accounts[0]);
+        setProvider(eth);
+        const hexId = '0x' + ARC_CHAIN_ID.toString(16);
+        const currentChain = await eth.request({ method: 'eth_chainId' });
+        if (currentChain !== hexId) {
+          try {
+            await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexId }] });
+          } catch (err) {
+            if (err.code === 4902 || err.code === -32603) {
+              await eth.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: hexId,
+                  chainName: 'ARC Testnet',
+                  nativeCurrency: { name: 'ARC', symbol: 'ARC', decimals: 18 },
+                  rpcUrls: [ARC_RPC],
+                  blockExplorerUrls: ['https://testnet.arcscan.app'],
+                }],
+              });
+            }
+          }
         }
       })
       .catch(e => console.warn('[WalletContext] eth_accounts restore failed:', e));
@@ -65,6 +84,28 @@ export function WalletProvider({ children }) {
       setProvider(prov);
       setAddress(accounts[0] || null);
       setWalletName(name);
+
+      // Auto-switch to ARC Testnet on connect. Use prov directly — provider state
+      // isn't set yet (React batches state updates), so switchToARC() would miss it.
+      const hexId = '0x' + ARC_CHAIN_ID.toString(16);
+      try {
+        await prov.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexId }] });
+      } catch (switchErr) {
+        if (switchErr.code === 4902 || switchErr.code === -32603) {
+          await prov.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: hexId,
+              chainName: 'ARC Testnet',
+              nativeCurrency: { name: 'ARC', symbol: 'ARC', decimals: 18 },
+              rpcUrls: [ARC_RPC],
+              blockExplorerUrls: ['https://testnet.arcscan.app'],
+            }],
+          });
+        }
+        // Don't rethrow — connection succeeded even if user rejects the network switch
+      }
+
       return accounts[0] || null;
     } catch (e) {
       console.error('Wallet connect error:', e);
