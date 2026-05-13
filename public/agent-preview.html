@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1200" />
+<title>DealARC Agent API — Social Card</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    background: #0a0a0a;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #e2e8f0;
+  }
+
+  /* ── Background ────────────────────────────────────────────────── */
+  .bg-glow-tl {
+    position: absolute;
+    top: -200px; left: -200px;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(124,58,237,0.14) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .bg-glow-br {
+    position: absolute;
+    bottom: -200px; right: -100px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,58,237,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,58,237,0.05) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+  /* Vignette */
+  .bg-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(0,0,0,0.55) 100%);
+    pointer-events: none;
+  }
+
+  /* ── Card shell ────────────────────────────────────────────────── */
+  .card {
+    position: relative;
+    width: 1200px;
+    height: 630px;
+    display: grid;
+    grid-template-columns: 520px 1fr;
+    grid-template-rows: 72px 1fr 68px;
+    padding: 0;
+  }
+
+  /* ── Top bar ───────────────────────────────────────────────────── */
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 52px;
+    border-bottom: 1px solid rgba(124,58,237,0.12);
+    background: rgba(255,255,255,0.01);
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-mark {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 18px;
+    color: #fff;
+    letter-spacing: -1px;
+    flex-shrink: 0;
+  }
+  .logo-name {
+    font-size: 24px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .logo-tag {
+    font-size: 13px;
+    color: #7c3aed;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: rgba(124,58,237,0.12);
+    border: 1px solid rgba(124,58,237,0.25);
+    margin-left: 4px;
+  }
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #10b981;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+    animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  /* ── Left: terminal ────────────────────────────────────────────── */
+  .left {
+    grid-column: 1;
+    padding: 28px 28px 0 52px;
+    display: flex;
+    flex-direction: column;
+  }
+  .terminal {
+    background: #0d0d0d;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(124,58,237,0.15), 0 20px 60px rgba(0,0,0,0.6);
+    flex: 1;
+  }
+  .term-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    background: #1a1a1a;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .term-dots {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 11px 14px;
+  }
+  .tdot { width: 12px; height: 12px; border-radius: 50%; }
+  .tdot-r { background: #ff5f57; }
+  .tdot-y { background: #ffbd2e; }
+  .tdot-g { background: #28c840; }
+  .term-tabs {
+    display: flex;
+    gap: 0;
+    height: 100%;
+    align-items: flex-end;
+  }
+  .term-tab {
+    padding: 8px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: #475569;
+    border-right: 1px solid rgba(255,255,255,0.05);
+    cursor: default;
+  }
+  .term-tab.active {
+    background: #0d0d0d;
+    color: #e2e8f0;
+    border-top: 1px solid #7c3aed;
+    margin-top: 1px;
+  }
+  .term-body {
+    padding: 18px 20px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+
+  /* Syntax colors */
+  .t-prompt  { color: #475569; }
+  .t-cmd     { color: #e2e8f0; }
+  .t-method  { color: #a78bfa; font-weight: 700; }
+  .t-url     { color: #60a5fa; }
+  .t-hkey    { color: #94a3b8; }
+  .t-hval    { color: #fbbf24; }
+  .t-hval-dim{ color: #475569; }
+  .t-dim     { color: #334155; }
+  .t-brace   { color: #64748b; }
+  .t-key     { color: #60a5fa; }
+  .t-str     { color: #34d399; }
+  .t-str-id  { color: #a78bfa; }
+  .t-bool    { color: #f59e0b; }
+  .t-comment { color: #1e3a5f; font-style: italic; }
+  .t-success { color: #10b981; font-weight: 700; }
+  .t-blank   { display: block; height: 6px; }
+
+  /* ── Right: flow + info ────────────────────────────────────────── */
+  .right {
+    grid-column: 2;
+    padding: 28px 48px 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+  }
+
+  /* ── Flow diagram ──────────────────────────────────────────────── */
+  .flow-wrap {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(124,58,237,0.14);
+    border-radius: 14px;
+    padding: 18px 18px 14px;
+  }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: nowrap;
+  }
+  .fn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+  }
+  .fn-purple { background: rgba(124,58,237,0.12); border-color: rgba(124,58,237,0.28); }
+  .fn-blue   { background: rgba(37,99,235,0.12);  border-color: rgba(37,99,235,0.28);  }
+  .fn-amber  { background: rgba(245,158,11,0.1);  border-color: rgba(245,158,11,0.22); }
+  .fn-violet { background: rgba(192,132,252,0.12);border-color: rgba(192,132,252,0.28);}
+  .fn-green  { background: rgba(16,185,129,0.1);  border-color: rgba(16,185,129,0.25); }
+  .fn-icon { font-size: 16px; display: block; margin-bottom: 3px; }
+  .fn-title {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    display: block;
+  }
+  .fn-sub {
+    font-size: 9px;
+    opacity: 0.55;
+    display: block;
+    margin-top: 1px;
+  }
+  .fc-purple { color: #a78bfa; }
+  .fc-blue   { color: #60a5fa; }
+  .fc-amber  { color: #fbbf24; }
+  .fc-violet { color: #c084fc; }
+  .fc-green  { color: #10b981; }
+  .fa { color: #1e293b; font-size: 12px; flex-shrink: 0; }
+
+  /* P2P + A2A pills */
+  .flow-tags {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .ftag {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 99px;
+    letter-spacing: 0.05em;
+  }
+  .ftag-p { background: rgba(124,58,237,0.15); color: #a78bfa; border: 1px solid rgba(124,58,237,0.3); }
+  .ftag-a { background: rgba(37,99,235,0.15);  color: #60a5fa; border: 1px solid rgba(37,99,235,0.3);  }
+  .ftag-plus { color: #334155; font-weight: 700; font-size: 13px; }
+
+  /* ── Stats ─────────────────────────────────────────────────────── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .stat {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(124,58,237,0.1);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .stat-val {
+    font-size: 20px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 3px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .stat-lbl { font-size: 10px; color: #475569; font-weight: 500; }
+
+  /* ── Footer ────────────────────────────────────────────────────── */
+  .footer {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 52px;
+    border-top: 1px solid rgba(124,58,237,0.1);
+    background: rgba(255,255,255,0.01);
+  }
+  .footer-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .fchip {
+    padding: 5px 13px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid;
+    letter-spacing: 0.02em;
+  }
+  .fc-arc    { color: #60a5fa; border-color: rgba(37,99,235,0.35);   background: rgba(37,99,235,0.08); }
+  .fc-circle { color: #10b981; border-color: rgba(16,185,129,0.35);  background: rgba(16,185,129,0.08);}
+  .fc-x402   { color: #a78bfa; border-color: rgba(124,58,237,0.35);  background: rgba(124,58,237,0.08);}
+  .fsep { color: #1e293b; font-size: 16px; }
+  .footer-url {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #2d3748;
+  }
+  .footer-url span { color: #4a5568; }
+</style>
+</head>
+<body>
+
+<div class="bg-glow-tl"></div>
+<div class="bg-glow-br"></div>
+<div class="bg-grid"></div>
+<div class="bg-vignette"></div>
+
+<div class="card">
+
+  <!-- ── Top bar ── -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark">A</div>
+      <div class="logo-name">DealARC</div>
+      <div class="logo-tag">for AI Agents</div>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      deal-arc.vercel.app
+    </div>
+  </div>
+
+  <!-- ── Terminal (left) ── -->
+  <div class="left">
+    <div class="terminal">
+      <div class="term-titlebar">
+        <div class="term-dots">
+          <div class="tdot tdot-r"></div>
+          <div class="tdot tdot-y"></div>
+          <div class="tdot tdot-g"></div>
+        </div>
+        <div class="term-tabs">
+          <div class="term-tab active">agent.sh</div>
+          <div class="term-tab">response.json</div>
+        </div>
+      </div>
+      <div class="term-body">
+<span class="t-prompt">$</span> <span class="t-cmd">curl -X</span> <span class="t-method">POST</span> <span class="t-url">https://deal-arc.vercel.app/api/agent/create-escrow</span> <span class="t-cmd">\</span>
+<span class="t-dim">  </span><span class="t-hkey">-H</span> <span class="t-hval">"Content-Type: application/json"</span> <span class="t-cmd">\</span>
+<span class="t-dim">  </span><span class="t-hkey">-H</span> <span class="t-hval">"X-API-Key: <span class="t-hval-dim">da_••••••••••••••••</span>"</span> <span class="t-cmd">\</span>
+<span class="t-dim">  </span><span class="t-hkey">-H</span> <span class="t-hval">"X-Payment-Signature: <span class="t-hval-dim">0x3f9a...</span>"</span> <span class="t-cmd">\</span>
+<span class="t-dim">  </span><span class="t-hkey">-d</span> <span class="t-hval">'{ "mode": "simple", "amount": "100",</span>
+<span class="t-dim">       </span><span class="t-hval">"buyer": "0xAgent1...", "seller": "0xAgent2..." }'</span>
+<span class="t-blank"></span>
+<span class="t-comment">HTTP/2 200 OK</span>
+<span class="t-brace">{</span>
+  <span class="t-key">"success"</span><span class="t-dim">:</span> <span class="t-bool">true</span><span class="t-dim">,</span>
+  <span class="t-key">"escrow"</span><span class="t-dim">:</span> <span class="t-brace">{</span>
+    <span class="t-key">"id"</span><span class="t-dim">:</span>     <span class="t-str-id">"f4b651b7-819b-4055-8c2f-b21ae080f7c6"</span><span class="t-dim">,</span>
+    <span class="t-key">"amount"</span><span class="t-dim">:</span> <span class="t-str">"100 USDC"</span><span class="t-dim">,</span>
+    <span class="t-key">"status"</span><span class="t-dim">:</span> <span class="t-success">"pending_deposit"</span>
+  <span class="t-brace">}</span>
+<span class="t-brace">}</span></div>
+    </div>
+  </div>
+
+  <!-- ── Right column ── -->
+  <div class="right">
+
+    <div>
+      <div class="section-label">A2A + P2P settlement flow</div>
+      <div class="flow-wrap">
+        <div class="flow-tags">
+          <div class="ftag ftag-p">P2P</div>
+          <div class="ftag-plus">+</div>
+          <div class="ftag ftag-a">A2A</div>
+        </div>
+        <div class="flow-row">
+          <div class="fn fn-purple">
+            <span class="fn-icon">&#128100;</span>
+            <span class="fn-title fc-purple">Agent A</span>
+            <span class="fn-sub">buyer</span>
+          </div>
+          <div class="fa">&#8594;</div>
+          <div class="fn fn-blue">
+            <span class="fn-icon">&#128274;</span>
+            <span class="fn-title fc-blue">Lock USDC</span>
+            <span class="fn-sub">on Arc</span>
+          </div>
+          <div class="fa">&#8594;</div>
+          <div class="fn fn-blue">
+            <span class="fn-icon">&#128230;</span>
+            <span class="fn-title fc-blue">Deliver</span>
+            <span class="fn-sub">IPFS proof</span>
+          </div>
+          <div class="fa">&#8594;</div>
+          <div class="fn fn-amber">
+            <span class="fn-icon">&#9889;</span>
+            <span class="fn-title fc-amber">Dispute?</span>
+            <span class="fn-sub">optional</span>
+          </div>
+          <div class="fa">&#8594;</div>
+          <div class="fn fn-violet">
+            <span class="fn-icon">&#129302;</span>
+            <span class="fn-title fc-violet">AI Judge</span>
+            <span class="fn-sub">Claude</span>
+          </div>
+          <div class="fa">&#8594;</div>
+          <div class="fn fn-green">
+            <span class="fn-icon">&#9989;</span>
+            <span class="fn-title fc-green">Verdict</span>
+            <span class="fn-sub">on-chain</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">By the numbers</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-val">0.001</div>
+          <div class="stat-lbl">USDC / API call</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">4</div>
+          <div class="stat-lbl">agent endpoints</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">x402</div>
+          <div class="stat-lbl">payment protocol</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <div class="footer-chips">
+      <div class="fchip fc-arc">Built on Arc</div>
+      <div class="fsep">&middot;</div>
+      <div class="fchip fc-circle">Powered by Circle USDC</div>
+      <div class="fsep">&middot;</div>
+      <div class="fchip fc-x402">x402 enabled</div>
+    </div>
+    <div class="footer-url"><span>deal-arc.vercel.app</span>/for-agents</div>
+  </div>
+
+</div>
+</body>
+</html>

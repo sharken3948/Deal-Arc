@@ -28,9 +28,10 @@ export async function GET(request) {
     version: '1.0.0',
     endpoints: [
       { method: 'POST', path: '/api/agent/create-escrow', description: 'Create a new escrow' },
-      { method: 'POST', path: '/api/agent/release',       description: 'Approve and release payment' },
-      { method: 'POST', path: '/api/agent/dispute',       description: 'Open a dispute on an escrow' },
-      { method: 'GET',  path: '/api/agent/status',        description: 'Check escrow status by ?id=' },
+      { method: 'POST', path: '/api/agent/deposit',        description: 'Mark escrow as funded (active)' },
+      { method: 'POST', path: '/api/agent/release',        description: 'Approve and release payment' },
+      { method: 'POST', path: '/api/agent/dispute',        description: 'Open a dispute on an escrow' },
+      { method: 'GET',  path: '/api/agent/status',         description: 'Check escrow status by ?id=' },
     ],
   }, { headers: CORS });
 }
