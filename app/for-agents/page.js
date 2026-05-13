@@ -111,12 +111,44 @@ export default function ForAgents() {
   const [copied, setCopied]         = useState(false);
   const [mcpCopied, setMcpCopied]   = useState(false);
 
+  // Registration form state
+  const [email, setEmail]           = useState('');
+  const [projectName, setProjectName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [regResult, setRegResult]   = useState(null); // { apiKey } | { error } | { existingKey }
+  const [keyCopied, setKeyCopied]   = useState(false);
+
   const activeCode = TABS.find(t => t.id === activeTab)?.code ?? CODE_CREATE;
 
   function copy(text, setter) {
     navigator.clipboard.writeText(text).catch(() => {});
     setter(true);
     setTimeout(() => setter(false), 2000);
+  }
+
+  async function handleRegister(e) {
+    e.preventDefault();
+    setSubmitting(true);
+    setRegResult(null);
+    try {
+      const res = await fetch('/api/agent/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, projectName }),
+      });
+      const data = await res.json();
+      if (res.status === 409) {
+        setRegResult({ existingKey: data.existingKey });
+      } else if (!data.success) {
+        setRegResult({ error: data.error || 'Registration failed.' });
+      } else {
+        setRegResult({ apiKey: data.apiKey });
+      }
+    } catch {
+      setRegResult({ error: 'Network error. Please try again.' });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -150,7 +182,7 @@ export default function ForAgents() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="mailto:sharken1907@gmail.com?subject=DealARC Agent API Key Request">
+            <a href="#get-key">
               <button className="btn-primary px-8 py-3.5 rounded-xl font-semibold text-sm">
                 Get API Key
               </button>
@@ -393,33 +425,120 @@ export default function ForAgents() {
         </div>
       </div>
 
-      {/* ── CTA ────────────────────────────────────────────────────────────── */}
-      <div className="max-w-4xl mx-auto px-6 pb-28 text-center">
-        <div className="relative glass rounded-2xl p-12 sm:p-16 overflow-hidden">
+      {/* ── Registration Form ───────────────────────────────────────────── */}
+      <div id="get-key" className="max-w-2xl mx-auto px-6 pb-28">
+        <div className="relative glass rounded-2xl p-8 sm:p-12 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-900/25 to-blue-900/20 pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-purple-600/8 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Ready to ship autonomous deals?
-            </h2>
-            <p className="text-slate-400 text-sm sm:text-base mb-10 max-w-md mx-auto leading-relaxed">
-              Request an API key and start creating trustless escrows from your agent in minutes.
-              No credit card. No KYC. Just USDC on Arc.
+            <p className="text-xs font-semibold text-purple-400 uppercase tracking-widest mb-3">
+              Get started
+            </p>
+            <h2 className="text-3xl font-bold text-white mb-2">Get your API key</h2>
+            <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+              Free. No credit card. No KYC. Start creating trustless escrows from your agent in minutes.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="mailto:sharken1907@gmail.com?subject=DealARC Agent API Key Request">
-                <button className="btn-primary px-10 py-4 rounded-xl font-semibold text-base">
-                  Get API Key
+            {/* ── Success state ── */}
+            {regResult?.apiKey && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <p className="text-sm font-semibold text-emerald-400">Your API key is ready</p>
+                </div>
+                <div className="glass rounded-xl overflow-hidden border border-emerald-500/20">
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 bg-white/[0.02]">
+                    <span className="text-xs text-slate-500 font-mono">X-API-Key</span>
+                    <button
+                      onClick={() => copy(regResult.apiKey, setKeyCopied)}
+                      className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1 glass rounded-lg"
+                    >
+                      {keyCopied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <pre className="px-4 py-3 text-sm font-mono text-emerald-300 overflow-x-auto">
+                    {regResult.apiKey}
+                  </pre>
+                </div>
+                <p className="text-xs text-slate-600 mt-3">
+                  Store this key securely — it will not be shown again.
+                  Set it as <code className="text-slate-400 font-mono bg-white/5 px-1 rounded">DEALARC_API_KEY</code> in your environment.
+                </p>
+              </div>
+            )}
+
+            {/* ── Duplicate state ── */}
+            {regResult?.existingKey && (
+              <div className="mb-6 glass rounded-xl p-4 border border-amber-500/20">
+                <p className="text-sm font-semibold text-amber-400 mb-2">You already have a key for this email</p>
+                <div className="flex items-center justify-between gap-3">
+                  <code className="text-xs font-mono text-slate-400 break-all">{regResult.existingKey}</code>
+                  <button
+                    onClick={() => copy(regResult.existingKey, setKeyCopied)}
+                    className="shrink-0 text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1 glass rounded-lg"
+                  >
+                    {keyCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Error state ── */}
+            {regResult?.error && (
+              <div className="mb-6 glass rounded-xl p-4 border border-red-500/20">
+                <p className="text-sm text-red-400">{regResult.error}</p>
+              </div>
+            )}
+
+            {/* ── Form ── */}
+            {!regResult?.apiKey && (
+              <form onSubmit={handleRegister} className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="agent@yourproject.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">
+                    Project name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="My Agent Project"
+                    value={projectName}
+                    onChange={e => setProjectName(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary w-full py-3.5 rounded-xl font-semibold text-sm mt-2"
+                >
+                  {submitting ? 'Generating key…' : 'Get My API Key'}
                 </button>
-              </a>
-              <Link href="/">
-                <button className="glass glass-hover px-10 py-4 rounded-xl font-semibold text-sm text-slate-300">
-                  View Dashboard
-                </button>
-              </Link>
-            </div>
+              </form>
+            )}
+
+            {/* Reset link after success */}
+            {regResult?.apiKey && (
+              <button
+                onClick={() => { setRegResult(null); setEmail(''); setProjectName(''); }}
+                className="text-xs text-slate-600 hover:text-slate-400 transition-colors mt-4"
+              >
+                Register another key
+              </button>
+            )}
           </div>
         </div>
       </div>

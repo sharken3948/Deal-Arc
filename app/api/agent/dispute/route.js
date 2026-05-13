@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
 import { resolveDispute } from '@/lib/claude';
 import { resolveOnChain } from '@/lib/contract';
+import { isAuthenticated } from '@/lib/agentAuth';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -9,9 +10,8 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
 };
 
-function authenticate(request) {
-  const key = request.headers.get('X-API-Key');
-  if (!process.env.AGENT_API_KEY || key !== process.env.AGENT_API_KEY) {
+async function authenticate(request) {
+  if (!await isAuthenticated(request)) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401, headers: CORS });
   }
   return null;
@@ -22,7 +22,7 @@ export async function OPTIONS() {
 }
 
 export async function POST(request) {
-  const denied = authenticate(request);
+  const denied = await authenticate(request);
   if (denied) return denied;
 
   try {

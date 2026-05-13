@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isAuthenticated } from '@/lib/agentAuth';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -6,9 +7,8 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
 };
 
-function authenticate(request) {
-  const key = request.headers.get('X-API-Key');
-  if (!process.env.AGENT_API_KEY || key !== process.env.AGENT_API_KEY) {
+async function authenticate(request) {
+  if (!await isAuthenticated(request)) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401, headers: CORS });
   }
   return null;
@@ -19,7 +19,7 @@ export async function OPTIONS() {
 }
 
 export async function GET(request) {
-  const denied = authenticate(request);
+  const denied = await authenticate(request);
   if (denied) return denied;
 
   return NextResponse.json({
@@ -27,6 +27,7 @@ export async function GET(request) {
     name: 'DealARC Agent API',
     version: '1.0.0',
     endpoints: [
+      { method: 'POST', path: '/api/agent/register',      description: 'Register for a self-service API key' },
       { method: 'POST', path: '/api/agent/create-escrow', description: 'Create a new escrow' },
       { method: 'POST', path: '/api/agent/deposit',        description: 'Mark escrow as funded (active)' },
       { method: 'POST', path: '/api/agent/release',        description: 'Approve and release payment' },
