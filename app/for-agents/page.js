@@ -96,6 +96,62 @@ const FLOW_NODES = [
   { label: 'Verdict',      sub: 'on-chain, final',  color: 'text-emerald-300',ring: 'border-emerald-500/40 bg-emerald-500/10'},
 ];
 
+const QUICK_STEPS = [
+  {
+    num: '01',
+    title: 'Get your API key',
+    desc: 'Register above — free, instant, no credit card.',
+    code: null,
+  },
+  {
+    num: '02',
+    title: 'Create an escrow',
+    desc: 'Lock USDC between two parties in one POST.',
+    code: `curl -X POST https://deal-arc.vercel.app/api/agent/create-escrow \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -d '{
+    "title":  "Job Title",
+    "buyer":  "0xBuyerAddress",
+    "seller": "0xSellerAddress",
+    "amount": "100",
+    "mode":   "simple"
+  }'`,
+  },
+  {
+    num: '03',
+    title: 'Check status',
+    desc: 'Poll the escrow state at any time.',
+    code: `curl "https://deal-arc.vercel.app/api/agent/status?id=ESCROW_ID" \\
+  -H "X-API-Key: YOUR_API_KEY"`,
+  },
+  {
+    num: '04',
+    title: 'Release payment',
+    desc: 'Buyer and seller both approve — USDC releases automatically.',
+    code: `curl -X POST https://deal-arc.vercel.app/api/agent/release \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -d '{
+    "escrowId": "ESCROW_ID",
+    "address":  "0xYourAddress"
+  }'`,
+  },
+  {
+    num: '05',
+    title: 'Open dispute (if needed)',
+    desc: 'File a claim — once both parties respond, Claude AI judges automatically.',
+    code: `curl -X POST https://deal-arc.vercel.app/api/agent/dispute \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -d '{
+    "escrowId": "ESCROW_ID",
+    "address":  "0xYourAddress",
+    "claim":    "Your dispute reason"
+  }'`,
+  },
+];
+
 const ENDPOINTS = [
   { method: 'POST', path: '/api/agent/create-escrow', desc: 'Create a new escrow deal' },
   { method: 'POST', path: '/api/agent/release',       desc: 'Approve and release payment' },
@@ -117,6 +173,7 @@ export default function ForAgents() {
   const [submitting, setSubmitting] = useState(false);
   const [regResult, setRegResult]   = useState(null); // { apiKey } | { error } | { existingKey }
   const [keyCopied, setKeyCopied]   = useState(false);
+  const [stepCopied, setStepCopied] = useState(null); // stores step num of copied block
 
   const activeCode = TABS.find(t => t.id === activeTab)?.code ?? CODE_CREATE;
 
@@ -540,6 +597,64 @@ export default function ForAgents() {
               </button>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* ── Quick Start ─────────────────────────────────────────────────── */}
+      <div className="max-w-4xl mx-auto px-6 pb-28">
+        <p className="text-xs font-semibold text-purple-400 uppercase tracking-widest mb-3 text-center">
+          Quick start
+        </p>
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-14">
+          Up and running in 5 steps
+        </h2>
+
+        <div className="flex flex-col gap-4">
+          {QUICK_STEPS.map((step) => (
+            <div key={step.num} className="glass glass-hover rounded-2xl overflow-hidden">
+              {/* Step header */}
+              <div className="flex items-center gap-4 px-6 py-4 border-b border-white/5">
+                <span className="text-2xl font-bold gradient-text font-mono leading-none shrink-0">
+                  {step.num}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white">{step.title}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{step.desc}</p>
+                </div>
+                {!step.code && (
+                  <span className="ml-auto shrink-0 text-xs font-semibold text-emerald-400 glass px-3 py-1 rounded-lg border border-emerald-500/20">
+                    Done above
+                  </span>
+                )}
+              </div>
+
+              {/* Code block */}
+              {step.code && (
+                <div>
+                  <div className="flex items-center justify-between px-5 py-2 bg-white/[0.015] border-b border-white/5">
+                    <div className="flex gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500/40" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500/40" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/40" />
+                    </div>
+                    <button
+                      onClick={() => {
+                        copy(step.code, () => {});
+                        setStepCopied(step.num);
+                        setTimeout(() => setStepCopied(null), 2000);
+                      }}
+                      className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1 glass rounded-lg"
+                    >
+                      {stepCopied === step.num ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <pre className="px-6 py-4 text-xs sm:text-[13px] font-mono text-slate-300 overflow-x-auto leading-relaxed">
+                    <code>{step.code}</code>
+                  </pre>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
