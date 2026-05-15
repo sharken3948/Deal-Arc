@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
 import { isAuthenticated } from '@/lib/agentAuth';
+import { withX402 } from '@/lib/x402';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
+  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key, X-Payment-Signature',
 };
 
 async function authenticate(request) {
@@ -19,7 +20,7 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
-export async function POST(request) {
+async function postHandler(request) {
   const denied = await authenticate(request);
   if (denied) return denied;
 
@@ -79,3 +80,5 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: CORS });
   }
 }
+
+export const POST = withX402(postHandler);

@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
 import { isAuthenticated } from '@/lib/agentAuth';
+import { withX402 } from '@/lib/x402';
+import { getAgentSigner } from '@/lib/turnkey';
+import { depositOnChain } from '@/lib/contract';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
+  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key, X-Payment-Signature',
 };
 
 async function authenticate(request) {
@@ -19,13 +22,12 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
-export async function POST(request) {
+async function postHandler(request) {
   const denied = await authenticate(request);
   if (denied) return denied;
 
   try {
-    const body = await request.json();
-    const { escrowId, txHash } = body;
+    const { escrowId } = await request.json();
 
     if (!escrowId) {
       return NextResponse.json(
@@ -45,18 +47,36 @@ export async function POST(request) {
       );
     }
 
+    const buyerAddress = escrow.buyer.address;
+    const signer       = getAgentSigner(buyerAddress);
+
+    const { approveTxHash, depositTxHash } = await depositOnChain({
+      uuid:   escrowId,
+      amount: escrow.amount,
+      signer,
+    });
+
     const updated = await storage.update(escrowId, {
-      status:        'active',
-      depositTxHash: txHash ?? null,
-      depositedAt:   new Date().toISOString(),
+      status:          'active',
+      depositTxHash,
+      approveTxHash,
+      depositedAt:     new Date().toISOString(),
     });
 
     if (!updated) {
       return NextResponse.json({ success: false, error: 'Storage update failed' }, { status: 500, headers: CORS });
     }
 
-    return NextResponse.json({ success: true, status: updated.status }, { headers: CORS });
+    return NextResponse.json({
+      success:       true,
+      status:        updated.status,
+      approveTxHash,
+      depositTxHash,
+    }, { headers: CORS });
   } catch (error) {
+    console.error('[agent/deposit] error:', error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: CORS });
   }
 }
+
+export const POST = withX402(postHandler);

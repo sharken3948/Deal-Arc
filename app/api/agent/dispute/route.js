@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
+import { ethers } from 'ethers';
 import { storage } from '@/lib/storage';
 import { resolveDispute } from '@/lib/claude';
-import { resolveOnChain } from '@/lib/contract';
+import { disputeOnChain, resolveOnChain } from '@/lib/contract';
+import { getAgentSigner } from '@/lib/turnkey';
 import { isAuthenticated } from '@/lib/agentAuth';
+import { withX402 } from '@/lib/x402';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
+  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key, X-Payment-Signature',
 };
 
 async function authenticate(request) {
@@ -21,13 +24,13 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
-export async function POST(request) {
+async function postHandler(request) {
   const denied = await authenticate(request);
   if (denied) return denied;
 
   try {
     const body = await request.json();
-    const { escrowId, address, claim, disputeTxHash } = body;
+    const { escrowId, address, claim } = body;
 
     if (!escrowId || !address || !claim) {
       return NextResponse.json(
@@ -57,9 +60,19 @@ export async function POST(request) {
       );
     }
 
+    // First filer (status === 'active'): register dispute on-chain signed by the disputing party.
+    // Second filer (status already 'disputed'): skip — contract is already in Disputed state.
+    let chainDisputeTxHash = null;
+    if (escrow.status === 'active') {
+      const evidenceHash = ethers.keccak256(ethers.toUtf8Bytes(claim));
+      const signer       = getAgentSigner(address);
+      const result       = await disputeOnChain({ uuid: escrowId, evidenceHash, signer });
+      chainDisputeTxHash = result.disputeTxHash;
+    }
+
     const updates = isBuyer
-      ? { status: 'disputed', buyer:  { ...escrow.buyer,  disputeClaim: claim, disputeTxHash: disputeTxHash ?? null } }
-      : { status: 'disputed', seller: { ...escrow.seller, disputeClaim: claim, disputeTxHash: disputeTxHash ?? null } };
+      ? { status: 'disputed', buyer:  { ...escrow.buyer,  disputeClaim: claim, disputeTxHash: chainDisputeTxHash } }
+      : { status: 'disputed', seller: { ...escrow.seller, disputeClaim: claim, disputeTxHash: chainDisputeTxHash } };
 
     await storage.update(escrowId, updates);
     const current = await storage.getById(escrowId);
@@ -92,10 +105,12 @@ export async function POST(request) {
     }
 
     return NextResponse.json(
-      { success: true, status: 'disputed', message: 'Dispute claim recorded. Awaiting other party.' },
+      { success: true, status: 'disputed', message: 'Dispute claim recorded. Awaiting other party.', disputeTxHash: chainDisputeTxHash },
       { headers: CORS },
     );
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: CORS });
   }
 }
+
+export const POST = withX402(postHandler);

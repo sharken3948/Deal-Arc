@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
 import { isAuthenticated } from '@/lib/agentAuth';
+import { withX402 } from '@/lib/x402';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
+  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key, X-Payment-Signature',
 };
 
 async function authenticate(request) {
@@ -19,7 +20,7 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
-export async function GET(request) {
+async function getHandler(request) {
   const denied = await authenticate(request);
   if (denied) return denied;
 
@@ -61,3 +62,5 @@ export async function GET(request) {
     updatedAt: escrow.updatedAt,
   }, { headers: CORS });
 }
+
+export const GET = withX402(getHandler);

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { createAgentWallet } from '@/lib/turnkey';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -37,27 +38,41 @@ export async function POST(request) {
     const existing = await kv.get(emailKey);
     if (existing) {
       return NextResponse.json(
-        { success: false, error: 'An API key already exists for this email', existingKey: existing },
+        { success: false, error: 'An API key already exists for this email' },
         { status: 409, headers: CORS },
       );
     }
 
-    const apiKey     = `da_${crypto.randomUUID()}`;
-    const createdAt  = new Date().toISOString();
-    const keyData    = { email: email.toLowerCase(), projectName, createdAt, requestCount: 0 };
+    const apiKey    = `da_${crypto.randomUUID()}`;
+    const createdAt = new Date().toISOString();
 
-    await Promise.all([
+    const wallet  = await createAgentWallet(projectName);
+    const keyData = {
+      email:         email.toLowerCase(),
+      projectName,
+      createdAt,
+      requestCount:  0,
+      walletId:      wallet?.walletId      ?? null,
+      walletAddress: wallet?.walletAddress ?? null,
+    };
+
+    const kvWrites = [
       kv.set(`key:${apiKey}`, keyData),
       kv.set(emailKey, apiKey),
-    ]);
+    ];
+    if (wallet?.walletAddress && wallet?.walletId) {
+      kvWrites.push(kv.set(`wallet:${wallet.walletAddress.toLowerCase()}`, wallet.walletId));
+    }
+    await Promise.all(kvWrites);
 
     return NextResponse.json({
-      success:     true,
+      success:       true,
       apiKey,
-      email:       keyData.email,
-      projectName: keyData.projectName,
+      email:         keyData.email,
+      projectName:   keyData.projectName,
+      walletAddress: keyData.walletAddress,
       createdAt,
-      message:     'Store this key securely — it will not be shown again.',
+      message:       'Store this key securely — it will not be shown again.',
     }, { status: 201, headers: CORS });
   } catch (error) {
     return NextResponse.json(

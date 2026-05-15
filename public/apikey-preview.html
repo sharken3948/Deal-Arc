@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1200" />
+<title>DealARC — Self-Service API Key</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    background: #0a0a0a;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #e2e8f0;
+  }
+
+  /* ── Background ─────────────────────────────────────────────────── */
+  .bg-glow-tl {
+    position: absolute;
+    top: -200px; left: -150px;
+    width: 650px; height: 650px;
+    background: radial-gradient(circle, rgba(124,58,237,0.13) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .bg-glow-br {
+    position: absolute;
+    bottom: -200px; right: -100px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(16,185,129,0.09) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .bg-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(124,58,237,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,58,237,0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+  .bg-vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,0.55) 100%);
+    pointer-events: none;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────────────── */
+  .card {
+    position: relative;
+    width: 1200px; height: 630px;
+    display: grid;
+    grid-template-rows: 68px 1fr 60px 52px;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ── Top bar ────────────────────────────────────────────────────── */
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 52px;
+    border-bottom: 1px solid rgba(124,58,237,0.12);
+    background: rgba(255,255,255,0.01);
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+  .logo-mark {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 17px; color: #fff; flex-shrink: 0;
+  }
+  .logo-name {
+    font-size: 22px; font-weight: 800;
+    background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; letter-spacing: -0.5px;
+  }
+  .logo-sep { color: #1e293b; margin: 0 8px; font-size: 18px; }
+  .logo-sub { font-size: 13px; font-weight: 600; color: #64748b; }
+  .top-badge {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 14px; border-radius: 99px;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.3);
+    font-size: 11px; font-weight: 700;
+    color: #10b981; text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .top-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #10b981; box-shadow: 0 0 6px #10b981;
+    animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+  /* ── Columns ────────────────────────────────────────────────────── */
+  .left  { grid-column: 1; grid-row: 2; padding: 22px 22px 0 52px; display: flex; flex-direction: column; gap: 13px; }
+  .right { grid-column: 2; grid-row: 2; padding: 22px 52px 0 22px; display: flex; flex-direction: column; gap: 13px; }
+
+  .slabel {
+    font-size: 10px; font-weight: 700; color: #334155;
+    text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px;
+  }
+
+  /* ── Form card ──────────────────────────────────────────────────── */
+  .form-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(124,58,237,0.18);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .form-title {
+    font-size: 18px; font-weight: 800; color: #f1f5f9;
+    margin-bottom: 14px; letter-spacing: -0.2px;
+  }
+  .field { margin-bottom: 10px; }
+  .field:last-of-type { margin-bottom: 0; }
+  .field-label {
+    font-size: 9.5px; font-weight: 700; color: #475569;
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px;
+  }
+  .field-input {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 9px;
+    padding: 8px 12px;
+    font-size: 12.5px;
+    color: #e2e8f0;
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* ── Success box ────────────────────────────────────────────────── */
+  .success-box {
+    background: rgba(16,185,129,0.07);
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .success-header {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(16,185,129,0.12);
+    background: rgba(16,185,129,0.05);
+  }
+  .success-check { font-size: 14px; }
+  .success-label { font-size: 11.5px; font-weight: 700; color: #10b981; }
+  .success-key-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; gap: 10px;
+  }
+  .success-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: #34d399; word-break: break-all;
+    flex: 1;
+  }
+  .copy-btn {
+    flex-shrink: 0;
+    padding: 4px 12px;
+    background: rgba(16,185,129,0.12);
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 7px;
+    font-size: 10.5px; font-weight: 600;
+    color: #10b981;
+    font-family: 'Inter', sans-serif;
+  }
+  .store-note {
+    font-size: 10px; color: #1e3a2e;
+    padding: 6px 14px;
+    border-top: 1px solid rgba(16,185,129,0.08);
+  }
+  .store-note span { color: #2d6a4f; }
+
+  /* ── Terminal ───────────────────────────────────────────────────── */
+  .terminal {
+    background: #0d0d0d;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(124,58,237,0.12), 0 16px 40px rgba(0,0,0,0.5);
+    flex: 1;
+  }
+  .term-bar {
+    display: flex; align-items: center; gap: 0;
+    background: #1a1a1a;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 0;
+  }
+  .term-dots { display: flex; gap: 6px; padding: 10px 14px; }
+  .tdot { width: 11px; height: 11px; border-radius: 50%; }
+  .tdot-r { background: #ff5f57; }
+  .tdot-y { background: #ffbd2e; }
+  .tdot-g { background: #28c840; }
+  .term-tab {
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: #e2e8f0;
+    border-top: 1px solid #7c3aed;
+    background: #0d0d0d;
+  }
+  .term-body {
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px; line-height: 1.75;
+  }
+  .t-dim    { color: #334155; }
+  .t-method { color: #a78bfa; font-weight: 700; }
+  .t-url    { color: #60a5fa; }
+  .t-hkey   { color: #94a3b8; }
+  .t-hval   { color: #fbbf24; }
+  .t-key    { color: #60a5fa; }
+  .t-str    { color: #34d399; }
+  .t-str-id { color: #a78bfa; }
+  .t-bool   { color: #f59e0b; }
+  .t-ok     { color: #10b981; font-weight: 700; }
+
+  /* ── Auth badge ─────────────────────────────────────────────────── */
+  .auth-badge {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.2);
+    border-radius: 10px;
+  }
+  .auth-icon { font-size: 16px; }
+  .auth-text { font-size: 12px; font-weight: 700; color: #10b981; }
+  .auth-sub  { font-size: 10px; color: #1e3a2e; margin-top: 1px; }
+
+  /* ── Flow strip ─────────────────────────────────────────────────── */
+  .flow-strip {
+    grid-column: 1 / -1; grid-row: 3;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    border-top: 1px solid rgba(124,58,237,0.08);
+    border-bottom: 1px solid rgba(124,58,237,0.08);
+    background: rgba(255,255,255,0.01);
+    padding: 0 52px;
+  }
+  .fn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 8px; border: 1px solid transparent;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .fn-purple { background: rgba(124,58,237,0.1); border-color: rgba(124,58,237,0.25); color: #a78bfa; }
+  .fn-violet { background: rgba(167,70,255,0.1); border-color: rgba(167,70,255,0.25); color: #c084fc; }
+  .fn-blue   { background: rgba(37,99,235,0.1);  border-color: rgba(37,99,235,0.25);  color: #60a5fa; }
+  .fn-green  { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.25); color: #10b981; }
+  .fa { color: #1e293b; font-size: 14px; }
+
+  /* ── Footer ─────────────────────────────────────────────────────── */
+  .footer {
+    grid-column: 1 / -1; grid-row: 4;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 52px;
+    background: rgba(255,255,255,0.01);
+  }
+  .footer-pills { display: flex; align-items: center; gap: 6px; }
+  .fpill {
+    padding: 4px 11px; border-radius: 99px;
+    font-size: 11px; font-weight: 600; border: 1px solid;
+  }
+  .fp-purple { color: #a78bfa; border-color: rgba(124,58,237,0.3); background: rgba(124,58,237,0.07); }
+  .fp-green  { color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.07); }
+  .fp-blue   { color: #60a5fa; border-color: rgba(37,99,235,0.3);  background: rgba(37,99,235,0.07); }
+  .fsep { color: #1e293b; font-size: 14px; }
+  .footer-url { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #2d3748; }
+</style>
+</head>
+<body>
+
+<div class="bg-glow-tl"></div>
+<div class="bg-glow-br"></div>
+<div class="bg-grid"></div>
+<div class="bg-vignette"></div>
+
+<div class="card">
+
+  <!-- ── Top bar ── -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark">A</div>
+      <div class="logo-name">DealARC</div>
+      <div class="logo-sep">/</div>
+      <div class="logo-sub">Self-Service API Keys</div>
+    </div>
+    <div class="top-badge">
+      <div class="top-dot"></div>
+      Instant · No Approval
+    </div>
+  </div>
+
+  <!-- ── Left: Registration form ── -->
+  <div class="left">
+
+    <div>
+      <div class="slabel">Step 1 — Register</div>
+      <div class="form-card">
+        <div class="form-title">Get Your API Key</div>
+        <div class="field">
+          <div class="field-label">Email</div>
+          <div class="field-input">agent@myproject.ai</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Project name</div>
+          <div class="field-input">My AI Agent</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="slabel">Step 2 — Your key</div>
+      <div class="success-box">
+        <div class="success-header">
+          <span class="success-check">&#9989;</span>
+          <span class="success-label">Your API key is ready</span>
+        </div>
+        <div class="success-key-row">
+          <span class="success-key">da_e247fa36-7bb3-48b8-ab57-8dc5df77b72a</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <div class="store-note">
+          Store securely — not shown again. Set as <span>DEALARC_API_KEY</span> in your env.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Right: Terminal ── -->
+  <div class="right">
+
+    <div>
+      <div class="slabel">Step 3 — Call the API</div>
+      <div class="terminal">
+        <div class="term-bar">
+          <div class="term-dots">
+            <div class="tdot tdot-r"></div>
+            <div class="tdot tdot-y"></div>
+            <div class="tdot tdot-g"></div>
+          </div>
+          <div class="term-tab">agent.sh</div>
+        </div>
+        <div class="term-body">
+<span class="t-dim">$</span> curl <span class="t-method">-X POST</span> <span class="t-url">deal-arc.vercel.app/api/agent/create-escrow</span> <span class="t-hkey">\</span>
+<span class="t-dim">  </span><span class="t-hkey">-H</span> <span class="t-hval">"X-API-Key: da_e247fa36-7bb3-..."</span> <span class="t-hkey">\</span>
+<span class="t-dim">  </span><span class="t-hkey">-d</span> <span class="t-hval">'{"title":"My Agent Job","amount":"25"}'</span>
+<br>
+<span class="t-dim">{</span>
+<span class="t-dim">  </span><span class="t-key">"success"</span><span class="t-dim">:</span> <span class="t-bool">true</span><span class="t-dim">,</span>
+<span class="t-dim">  </span><span class="t-key">"escrow"</span><span class="t-dim">: {</span>
+<span class="t-dim">    </span><span class="t-key">"id"</span><span class="t-dim">:</span>     <span class="t-str-id">"3100035e-0f88-4b33-a6b0..."</span><span class="t-dim">,</span>
+<span class="t-dim">    </span><span class="t-key">"amount"</span><span class="t-dim">:</span> <span class="t-str">"25 USDC"</span><span class="t-dim">,</span>
+<span class="t-dim">    </span><span class="t-key">"status"</span><span class="t-dim">:</span> <span class="t-ok">"pending_deposit"</span>
+<span class="t-dim">  }</span>
+<span class="t-dim">}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-badge">
+      <span class="auth-icon">&#9989;</span>
+      <div>
+        <div class="auth-text">Authenticated &amp; Working</div>
+        <div class="auth-sub">User-issued key · KV-backed · 0 approval delay</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Flow strip ── -->
+  <div class="flow-strip">
+    <div class="fn fn-purple">
+      &#9998; Register
+    </div>
+    <div class="fa">&#8594;</div>
+    <div class="fn fn-violet">
+      &#128273; Get Key
+    </div>
+    <div class="fa">&#8594;</div>
+    <div class="fn fn-blue">
+      &#9889; Call API
+    </div>
+    <div class="fa">&#8594;</div>
+    <div class="fn fn-green">
+      &#128274; Escrow Created
+    </div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <div class="footer-pills">
+      <div class="fpill fp-purple">Self-service</div>
+      <div class="fsep">&middot;</div>
+      <div class="fpill fp-green">Instant</div>
+      <div class="fsep">&middot;</div>
+      <div class="fpill fp-blue">No approval needed</div>
+    </div>
+    <div class="footer-url">deal-arc.vercel.app/for-agents</div>
+  </div>
+
+</div>
+</body>
+</html>
