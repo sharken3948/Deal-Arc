@@ -50,6 +50,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-6 text-sm">
             <Link href="/" className="text-slate-400 hover:text-white transition-colors">Dashboard</Link>
             <Link href="/escrow/create" className="text-slate-400 hover:text-white transition-colors">New Escrow</Link>
+            <Link href="/docs" className="text-slate-400 hover:text-white transition-colors">Docs</Link>
             <Link href="/for-agents" className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/40 hover:text-purple-200 transition-all text-xs font-semibold tracking-wide">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400 pulse" />
               For Agents
@@ -157,6 +158,13 @@ export default function Navbar() {
             className="py-2.5 px-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
           >
             New Escrow
+          </Link>
+          <Link
+            href="/docs"
+            onClick={() => setMobileMenuOpen(false)}
+            className="py-2.5 px-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+          >
+            Docs
           </Link>
           <Link
             href="/for-agents"
