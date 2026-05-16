@@ -1,6 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/app/components/Navbar';
 
 function truncate(addr) {
@@ -131,27 +130,10 @@ function SkeletonCard() {
   );
 }
 
-const SORT_OPTIONS = [
-  { value: 'completed',   label: 'Completed' },
-  { value: 'successRate', label: 'Success Rate' },
-  { value: 'disputeRate', label: 'Dispute Rate' },
-];
-
-function parseRate(val) {
-  if (!val || val === 'N/A') return -1;
-  return parseInt(val);
-}
-
-const TYPE_LABELS = { agent: 'AI Agents', person: 'Persons' };
-
-function WorkersContent() {
-  const searchParams = useSearchParams();
-  const typeFilter   = searchParams.get('type'); // 'agent' | 'person' | null
-
+export default function WorkersPage() {
   const [agents, setAgents]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
-  const [sort, setSort]       = useState('completed');
 
   useEffect(() => {
     fetch('/api/agent/directory')
@@ -163,35 +145,14 @@ function WorkersContent() {
       .catch(() => setLoading(false));
   }, []);
 
-  // Reset search when type filter changes
-  useEffect(() => { setSearch(''); }, [typeFilter]);
-
   const filtered = useMemo(() => {
-    let list = typeFilter
-      ? agents.filter(a => a.type === typeFilter)
-      : agents;
-
     const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter(a =>
-        a.address.toLowerCase().includes(q) ||
-        (a.name ?? '').toLowerCase().includes(q)
-      );
-    }
-
-    return [...list].sort((a, b) => {
-      if (sort === 'completed')   return b.completed - a.completed;
-      if (sort === 'successRate') return parseRate(b.successRate) - parseRate(a.successRate);
-      if (sort === 'disputeRate') return parseRate(b.disputeRate) - parseRate(a.disputeRate);
-      return 0;
-    });
-  }, [agents, typeFilter, search, sort]);
-
-  const pageTitle    = typeFilter ? TYPE_LABELS[typeFilter] ?? 'Workers' : 'Worker Directory';
-  const pageSubtitle = typeFilter
-    ? `${TYPE_LABELS[typeFilter] ?? 'Workers'} registered on DealARC`
-    : 'All registered workers on DealARC';
-  const totalCount   = typeFilter ? agents.filter(a => a.type === typeFilter).length : agents.length;
+    if (!q) return agents;
+    return agents.filter(a =>
+      a.address.toLowerCase().includes(q) ||
+      (a.name ?? '').toLowerCase().includes(q)
+    );
+  }, [agents, search]);
 
   return (
     <div className="min-h-screen">
@@ -202,48 +163,28 @@ function WorkersContent() {
         {/* Header */}
         <div className="mb-10">
           <div className="mb-3">
-            <h1 className="text-4xl sm:text-5xl font-bold gradient-text">{pageTitle}</h1>
+            <h1 className="text-4xl sm:text-5xl font-bold gradient-text">Workers</h1>
           </div>
-          <p className="text-slate-400 text-lg">{pageSubtitle}</p>
+          <p className="text-slate-400 text-lg">Search by wallet address to verify reputation</p>
           {!loading && (
             <p className="text-sm text-slate-600 mt-2">
-              {totalCount} {typeFilter ? (TYPE_LABELS[typeFilter] ?? 'worker').toLowerCase().slice(0, -1) : 'worker'}{totalCount !== 1 ? 's' : ''} registered
+              {agents.length} worker{agents.length !== 1 ? 's' : ''} registered
             </p>
           )}
         </div>
 
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-8">
-          <div className="relative flex-1">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search by address or name…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl glass border border-purple-500/10 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-purple-500/30 transition-colors"
-            />
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs text-slate-500 whitespace-nowrap">Sort by</span>
-            <div className="flex rounded-xl overflow-hidden border border-purple-500/10 glass">
-              {SORT_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setSort(opt.value)}
-                  className={`px-3 py-2 text-xs transition-colors ${
-                    sort === opt.value
-                      ? 'bg-purple-500/20 text-purple-300 font-medium'
-                      : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Search */}
+        <div className="relative mb-8">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search by address or name…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl glass border border-purple-500/10 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-purple-500/30 transition-colors"
+          />
         </div>
 
         {/* Grid */}
@@ -259,11 +200,13 @@ function WorkersContent() {
               </svg>
             </div>
             <p className="text-slate-400 font-medium mb-1">
-              {search ? 'No workers match your search' : 'No workers registered yet'}
+              {search ? 'No records found.' : 'Search a wallet address to view reputation.'}
             </p>
-            <p className="text-slate-600 text-sm">
-              {search ? 'Try a different address or name' : 'Workers appear here after completing their first deal'}
-            </p>
+            {search && (
+              <p className="text-slate-600 text-sm">
+                This wallet has not completed any deals on DealARC yet.
+              </p>
+            )}
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -278,10 +221,3 @@ function WorkersContent() {
   );
 }
 
-export default function WorkersPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen"><Navbar /></div>}>
-      <WorkersContent />
-    </Suspense>
-  );
-}
