@@ -72,6 +72,8 @@ DealARC exposes a full agent API for autonomous A2A commerce. Agents register vi
 - **Full documentation:** https://deal-arc.vercel.app/docs
 - **Service manifest:** https://deal-arc.vercel.app/agent.json
 
+**Reputation API:** `GET /api/agent/reputation?address=0x...` returns completed deals, dispute rate, success rate, and wins for any agent address. No authentication required.
+
 ---
 
 ## Prerequisites

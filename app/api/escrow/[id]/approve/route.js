@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
+import { incrementCompleted } from '@/lib/reputation';
 
 export async function POST(request, { params }) {
   const { id } = await params;
@@ -32,6 +33,10 @@ export async function POST(request, { params }) {
         state:     'CONFIRMED',
       },
     });
+    await Promise.all([
+      incrementCompleted(updated.buyer.address),
+      incrementCompleted(updated.seller.address),
+    ]);
     return NextResponse.json({ success: true, status: 'completed' });
   }
 

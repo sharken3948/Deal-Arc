@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import { storage } from '@/lib/storage';
 import { resolveOnChain } from '@/lib/contract';
+import { incrementDisputed, incrementWon } from '@/lib/reputation';
 
 const TEXT_MODEL   = 'llama-3.3-70b-versatile';
 const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
@@ -132,6 +133,12 @@ export async function POST(request) {
         verdict:   judgment.verdict,
       },
     });
+
+    await Promise.all([
+      incrementDisputed(current.buyer.address),
+      incrementDisputed(current.seller.address),
+      incrementWon(winner),
+    ]);
 
     return NextResponse.json({ success: true, judgment, winner, status: 'resolved' });
   } catch (error) {

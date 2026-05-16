@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
 import { isAuthenticated } from '@/lib/agentAuth';
 import { withX402 } from '@/lib/x402';
+import { incrementCompleted } from '@/lib/reputation';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -69,6 +70,10 @@ async function postHandler(request) {
         completedAt: new Date().toISOString(),
         releaseTx:   { txHash: txHash ?? null, amount: updated.amount, timestamp: new Date().toISOString(), state: 'CONFIRMED' },
       });
+      await Promise.all([
+        incrementCompleted(updated.buyer.address),
+        incrementCompleted(updated.seller.address),
+      ]);
       return NextResponse.json({ success: true, status: 'completed' }, { headers: CORS });
     }
 
