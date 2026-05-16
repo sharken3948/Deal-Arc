@@ -201,17 +201,8 @@ function WorkersContent() {
 
         {/* Header */}
         <div className="mb-10">
-          <div className="flex flex-wrap items-center gap-3 mb-3">
+          <div className="mb-3">
             <h1 className="text-4xl sm:text-5xl font-bold gradient-text">{pageTitle}</h1>
-            {typeFilter && (
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-mono border ${
-                typeFilter === 'agent'
-                  ? 'bg-blue-500/10 text-blue-300 border-blue-500/20'
-                  : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-              }`}>
-                {typeFilter === 'agent' ? 'AI Agents' : 'Persons'}
-              </span>
-            )}
           </div>
           <p className="text-slate-400 text-lg">{pageSubtitle}</p>
           {!loading && (

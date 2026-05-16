@@ -6,25 +6,43 @@ import { useWallet } from '@/app/contexts/WalletContext';
 
 const MODES = [
   {
+    id: 'simple',
+    label: 'Simple Transfer',
+    desc: 'Buyer locks USDC. Both parties approve to release funds. No AI judge required.',
+    border: 'border-blue-500/30',
+    bg: 'bg-blue-500/5',
+    iconColor: 'text-blue-400',
+    icon: (cls) => (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+      </svg>
+    ),
+  },
+  {
     id: 'service',
     label: 'Service & Product',
-    icon: '🤝',
-    desc: 'Buyer locks USDC. Seller uploads proof. Claude AI evaluates completion.',
-    gradient: 'from-purple-600/30 to-blue-600/30',
+    desc: 'Buyer locks USDC. Seller submits proof. AI Judge evaluates completion.',
+    border: 'border-purple-500/30',
+    bg: 'bg-purple-500/5',
+    iconColor: 'text-purple-400',
+    icon: (cls) => (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      </svg>
+    ),
   },
   {
     id: 'milestone',
     label: 'Milestone Escrow',
-    icon: '🏁',
-    desc: 'Total USDC locked upfront. Seller submits proof per milestone. Payments release progressively.',
-    gradient: 'from-cyan-600/30 to-blue-600/30',
-  },
-  {
-    id: 'simple',
-    label: 'Simple Transfer',
-    icon: '💸',
-    desc: 'Buyer locks USDC. Both parties approve to release funds. No AI judge required.',
-    gradient: 'from-emerald-600/30 to-teal-600/30',
+    desc: 'Total USDC locked upfront. Seller submits proof per milestone. Payments release progressively. AI Judge resolves disputes.',
+    border: 'border-emerald-500/30',
+    bg: 'bg-emerald-500/5',
+    iconColor: 'text-emerald-400',
+    icon: (cls) => (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5" />
+      </svg>
+    ),
   },
 ];
 
@@ -143,16 +161,18 @@ export default function CreateEscrow() {
           <div>
             <h2 className="text-2xl font-bold text-white mb-2">Choose Escrow Mode</h2>
             <p className="text-slate-400 mb-8">Select the type of escrow you want to create.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-4">
               {MODES.map(m => (
                 <button
                   key={m.id}
                   onClick={() => { setMode(m.id); setStep(2); }}
-                  className={`glass glass-hover text-left rounded-xl p-5 bg-gradient-to-br ${m.gradient}`}
+                  className={`w-full text-left rounded-xl py-8 px-8 border-t border-r border-b border-l-4 ${m.border} ${m.bg} transition-all hover:brightness-110`}
                 >
-                  <div className="text-3xl mb-3">{m.icon}</div>
-                  <p className="font-semibold text-white mb-1">{m.label}</p>
-                  <p className="text-xs text-slate-400 leading-relaxed">{m.desc}</p>
+                  <div className={`mb-5 ${m.iconColor}`}>
+                    {m.icon('w-12 h-12')}
+                  </div>
+                  <p className="font-bold text-white text-lg mb-2">{m.label}</p>
+                  <p className="text-sm text-slate-400 leading-relaxed">{m.desc}</p>
                 </button>
               ))}
             </div>
@@ -165,7 +185,7 @@ export default function CreateEscrow() {
             <div className="flex items-center gap-3 mb-6">
               <button onClick={() => setStep(1)} className="text-slate-500 hover:text-white text-sm">← Back</button>
               <h2 className="text-2xl font-bold text-white">
-                {MODES.find(m => m.id === mode)?.icon} {MODES.find(m => m.id === mode)?.label}
+                {MODES.find(m => m.id === mode)?.label}
               </h2>
             </div>
 
@@ -273,7 +293,9 @@ export default function CreateEscrow() {
 
             <div className="glass rounded-xl p-6 space-y-4 mb-6">
               <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-                <span className="text-3xl">{MODES.find(m => m.id === mode)?.icon}</span>
+                <span className={MODES.find(m => m.id === mode)?.iconColor}>
+                  {MODES.find(m => m.id === mode)?.icon('w-8 h-8')}
+                </span>
                 <div>
                   <p className="font-bold text-white">{form.title}</p>
                   <p className="text-xs text-slate-500">{MODES.find(m => m.id === mode)?.label}</p>
