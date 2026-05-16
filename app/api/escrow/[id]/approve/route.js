@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
-import { incrementCompleted } from '@/lib/reputation';
+import { incrementCompleted, setPersonType } from '@/lib/reputation';
 
 export async function POST(request, { params }) {
   const { id } = await params;
@@ -36,6 +36,8 @@ export async function POST(request, { params }) {
     await Promise.all([
       incrementCompleted(updated.buyer.address),
       incrementCompleted(updated.seller.address),
+      setPersonType(updated.buyer.address),
+      setPersonType(updated.seller.address),
     ]);
     return NextResponse.json({ success: true, status: 'completed' });
   }

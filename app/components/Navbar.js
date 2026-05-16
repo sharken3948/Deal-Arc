@@ -10,9 +10,10 @@ function truncate(addr) {
 
 export default function Navbar() {
   const { address, chainId, isConnecting, switchAccount, disconnect, openModal, switchToARC } = useWallet();
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted]           = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [workersOpen, setWorkersOpen]   = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => { setMounted(true); }, []);
@@ -48,9 +49,45 @@ export default function Navbar() {
             <span className="font-bold text-lg gradient-text">DealARC</span>
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/" className="text-slate-400 hover:text-white transition-colors">Dashboard</Link>
-            <Link href="/escrow/create" className="text-slate-400 hover:text-white transition-colors">New Escrow</Link>
+            <Link href="/" className="text-slate-400 hover:text-white transition-colors">Home</Link>
             <Link href="/docs" className="text-slate-400 hover:text-white transition-colors">Docs</Link>
+
+            {/* Workers dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => setWorkersOpen(true)}
+              onMouseLeave={() => setWorkersOpen(false)}
+            >
+              <button className={`flex items-center gap-1 transition-colors ${workersOpen ? 'text-white' : 'text-slate-400 hover:text-white'}`}>
+                Workers
+                <svg className={`w-3 h-3 transition-transform ${workersOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {workersOpen && (
+                <div className="absolute top-full left-0 pt-2 z-50">
+                  <div className="bg-[#0f0f1a] border border-purple-900/40 rounded-xl shadow-xl overflow-hidden min-w-[140px]">
+                    <div className="p-1.5 flex flex-col gap-0.5">
+                      <Link
+                        href="/workers?type=agent"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-purple-900/30 transition-colors"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                        AI Agents
+                      </Link>
+                      <Link
+                        href="/workers?type=person"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-purple-900/30 transition-colors"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                        Persons
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Link href="/for-agents" className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/40 hover:text-purple-200 transition-all text-xs font-semibold tracking-wide">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400 pulse" />
               For Agents
@@ -150,14 +187,7 @@ export default function Navbar() {
             onClick={() => setMobileMenuOpen(false)}
             className="py-2.5 px-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
           >
-            Dashboard
-          </Link>
-          <Link
-            href="/escrow/create"
-            onClick={() => setMobileMenuOpen(false)}
-            className="py-2.5 px-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
-          >
-            New Escrow
+            Home
           </Link>
           <Link
             href="/docs"
@@ -165,6 +195,23 @@ export default function Navbar() {
             className="py-2.5 px-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
           >
             Docs
+          </Link>
+          <p className="px-2 pt-2 pb-0.5 text-[10px] text-slate-600 uppercase tracking-widest">Workers</p>
+          <Link
+            href="/workers?type=agent"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 py-2.5 px-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+            AI Agents
+          </Link>
+          <Link
+            href="/workers?type=person"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 py-2.5 px-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+            Persons
           </Link>
           <Link
             href="/for-agents"

@@ -61,7 +61,11 @@ export async function POST(request) {
       kv.set(emailKey, apiKey),
     ];
     if (wallet?.walletAddress && wallet?.walletId) {
-      kvWrites.push(kv.set(`wallet:${wallet.walletAddress.toLowerCase()}`, wallet.walletId));
+      const addr = wallet.walletAddress.toLowerCase();
+      kvWrites.push(kv.set(`wallet:${addr}`, wallet.walletId));
+      kvWrites.push(kv.set(`agent:${addr}:profile`, { name: projectName, registeredAt: createdAt }));
+      kvWrites.push(kv.set(`agent:${addr}:type`, 'agent'));
+      kvWrites.push(kv.sadd('agents', addr));
     }
     await Promise.all(kvWrites);
 
