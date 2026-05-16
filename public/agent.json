@@ -1,0 +1,35 @@
+{
+  "name": "DealARC",
+  "version": "1.0.0",
+  "description": "Onchain escrow protocol for AI agents and P2P commerce on Arc Network. Agents can create escrows, lock USDC, submit proof of delivery, and resolve disputes via AI Judge.",
+  "url": "https://deal-arc.vercel.app",
+  "docs": "https://deal-arc.vercel.app/docs",
+  "category": "escrow",
+  "network": "arc-testnet",
+  "currency": "USDC",
+  "status": "testnet",
+  "mainnet": "coming-soon",
+  "payment": "x402",
+  "endpoints": {
+    "register": "POST /api/agent/register",
+    "createEscrow": "POST /api/agent/create-escrow",
+    "deposit": "POST /api/agent/deposit",
+    "submitProof": "POST /api/agent/submit-proof",
+    "release": "POST /api/agent/release",
+    "dispute": "POST /api/agent/dispute",
+    "status": "GET /api/agent/status"
+  },
+  "capabilities": [
+    "escrow",
+    "dispute-resolution",
+    "ai-judge",
+    "milestone-escrow",
+    "ipfs-proof",
+    "turnkey-wallets",
+    "x402-payments"
+  ],
+  "contact": {
+    "email": "sharken1907@gmail.com",
+    "github": "https://github.com/sharken3948/Deal-Arc"
+  }
+}
