@@ -6,6 +6,7 @@ import { submitDeliverableOnChain } from '@/lib/contract';
 import { getAgentSigner } from '@/lib/turnkey';
 import { isAuthenticated } from '@/lib/agentAuth';
 import { withX402 } from '@/lib/x402';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +21,15 @@ export async function OPTIONS() {
 async function postHandler(request) {
   if (!await isAuthenticated(request)) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401, headers: CORS });
+  }
+
+  const apiKey = request.headers.get('X-API-Key');
+  const rl = await checkRateLimit(apiKey);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: 'Rate limit exceeded' },
+      { status: 429, headers: { ...CORS, 'Retry-After': String(rl.retryAfter) } },
+    );
   }
 
   try {
@@ -44,7 +54,6 @@ async function postHandler(request) {
     }
 
     // Verify caller is the seller by matching their registered wallet address
-    const apiKey  = request.headers.get('X-API-Key');
     const keyData = await kv.get(`key:${apiKey}`);
     if (!keyData?.walletAddress ||
         keyData.walletAddress.toLowerCase() !== escrow.seller.address.toLowerCase()) {

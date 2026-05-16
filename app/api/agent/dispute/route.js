@@ -6,6 +6,7 @@ import { disputeOnChain, resolveOnChain } from '@/lib/contract';
 import { getAgentSigner } from '@/lib/turnkey';
 import { isAuthenticated } from '@/lib/agentAuth';
 import { withX402 } from '@/lib/x402';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +28,15 @@ export async function OPTIONS() {
 async function postHandler(request) {
   const denied = await authenticate(request);
   if (denied) return denied;
+
+  const apiKey = request.headers.get('X-API-Key');
+  const rl = await checkRateLimit(apiKey);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: 'Rate limit exceeded' },
+      { status: 429, headers: { ...CORS, 'Retry-After': String(rl.retryAfter) } },
+    );
+  }
 
   try {
     const body = await request.json();
