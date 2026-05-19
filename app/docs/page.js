@@ -330,14 +330,17 @@ export default function DocsPage() {
                 <EndpointCard
                   method="POST"
                   path="/api/agent/create-escrow"
-                  description="Create a simple or milestone-based escrow on Arc."
+                  description="Create a simple, service, or milestone-based escrow on Arc."
                 >
                   <SubHeader>Request</SubHeader>
                   <CodeBlock lang="json">{`{
+  "mode": "simple | service | milestone (required)",
   "title": "string (required)",
-  "amount": "number in USDC (required)",
-  "sellerAddress": "0x... (required)",
+  "buyer": "0x... (required)",
+  "seller": "0x... (required)",
+  "amount": "number in USDC (required for simple/service)",
   "description": "string (optional)",
+  "requirements": "string — verifiable success criteria (required for service/milestone)",
   "milestones": [
     {
       "title": "string",
@@ -346,6 +349,14 @@ export default function DocsPage() {
     }
   ]
 }`}</CodeBlock>
+                  <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mt-2">
+                    <span className="text-amber-400 shrink-0 mt-0.5">!</span>
+                    <p className="text-sm text-amber-200">
+                      For <InlineCode color="amber">service</InlineCode> and <InlineCode color="amber">milestone</InlineCode> modes,{' '}
+                      <InlineCode color="amber">requirements</InlineCode> must be at least 100 characters and score ≥&nbsp;7/10 on
+                      an AI verifiability check (Groq). Vague requirements are rejected with a score and feedback before the escrow is created.
+                    </p>
+                  </div>
                   <SubHeader>Response</SubHeader>
                   <CodeBlock lang="json">{`{
   "escrowId": "string",
@@ -420,6 +431,32 @@ export default function DocsPage() {
   "disputeId": "string",
   "deadline": "ISO timestamp — 24h for seller to respond",
   "status": "dispute_filed"
+}`}</CodeBlock>
+                </EndpointCard>
+
+                <EndpointCard
+                  method="POST"
+                  path="/api/agent/submit-evidence"
+                  description="Attach image evidence to an escrow or milestone. Accepts a base64-encoded image or a URL. Images under 500 KB are stored directly in KV; larger files are pinned to IPFS via Pinata. Max 3 submissions per milestone."
+                >
+                  <SubHeader>Request</SubHeader>
+                  <CodeBlock lang="json">{`{
+  "escrowId": "string (required)",
+  "milestoneIndex": "number — defaults to 0",
+  "base64": "string — raw image data (provide this or evidenceUrl)",
+  "evidenceUrl": "string — URL to existing evidence (provide this or base64)",
+  "mimeType": "string — e.g. image/jpeg (default: image/jpeg)",
+  "description": "string (optional)"
+}`}</CodeBlock>
+                  <SubHeader>Response</SubHeader>
+                  <CodeBlock lang="json">{`{
+  "success": true,
+  "escrowId": "string",
+  "milestoneIndex": 0,
+  "ipfsHash": "Qm... (null if stored inline)",
+  "ipfsUrl": "string (null if stored inline)",
+  "evidenceStored": { "type": "base64 | ipfs | url", "submittedAt": "ISO timestamp" },
+  "submissionsRemaining": 2
 }`}</CodeBlock>
                 </EndpointCard>
 
@@ -625,6 +662,7 @@ FAVOR SELLER — 91% confidence`}</CodeBlock>
                       { comp: 'Proof storage',   tech: 'IPFS via Pinata'                                        },
                       { comp: 'AI Judge',        tech: 'Claude (Anthropic) + Groq vision'                       },
                       { comp: 'Off-chain state', tech: 'Upstash KV'                                             },
+                      { comp: 'Wallet connection', tech: 'RainbowKit + wagmi'                                   },
                       { comp: 'Framework',       tech: 'Next.js'                                                },
                       { comp: 'Deployment',      tech: 'Vercel'                                                 },
                     ].map(({ comp, tech }, i) => (
