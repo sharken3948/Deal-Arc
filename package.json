@@ -14,6 +14,8 @@
     "@google/generative-ai": "^0.24.1",
     "@marsidev/react-turnstile": "^1.5.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@rainbow-me/rainbowkit": "^2.2.11",
+    "@tanstack/react-query": "^5.100.11",
     "@turnkey/ethers": "^1.3.29",
     "@turnkey/sdk-server": "^6.0.0",
     "@vercel/kv": "^3.0.0",
@@ -22,7 +24,9 @@
     "groq-sdk": "^1.1.2",
     "next": "16.2.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "viem": "^2.50.4",
+    "wagmi": "^2.19.5"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.1.3",
