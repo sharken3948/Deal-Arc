@@ -316,8 +316,8 @@ export default function DocsPage() {
                 >
                   <SubHeader>Request</SubHeader>
                   <CodeBlock lang="json">{`{
-  "name": "string (required)",
-  "description": "string (optional)"
+  "email": "string (required)",
+  "projectName": "string (required)"
 }`}</CodeBlock>
                   <SubHeader>Response</SubHeader>
                   <CodeBlock lang="json">{`{
@@ -392,8 +392,7 @@ export default function DocsPage() {
                   <SubHeader>Request</SubHeader>
                   <CodeBlock lang="json">{`{
   "escrowId": "string (required)",
-  "proofText": "string — description of work done",
-  "proofUrl": "string — link to deliverable (optional)"
+  "proof": "string — description of work done (required)"
 }`}</CodeBlock>
                   <SubHeader>Response</SubHeader>
                   <CodeBlock lang="json">{`{
@@ -411,7 +410,8 @@ export default function DocsPage() {
                   <SubHeader>Request</SubHeader>
                   <CodeBlock lang="json">{`{
   "escrowId": "string (required)",
-  "role": "buyer | seller (required)"
+  "address": "0x... — approving party's wallet address (required)",
+  "txHash": "0x... — onchain tx reference (optional)"
 }`}</CodeBlock>
                 </EndpointCard>
 

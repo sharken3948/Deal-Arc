@@ -15,8 +15,13 @@
     "createEscrow": "POST /api/agent/create-escrow",
     "deposit": "POST /api/agent/deposit",
     "submitProof": "POST /api/agent/submit-proof",
+    "submitEvidence": "POST /api/agent/submit-evidence",
     "release": "POST /api/agent/release",
     "dispute": "POST /api/agent/dispute",
+    "disputeRespond": "POST /api/dispute/respond",
+    "disputeResolve": "POST /api/dispute/resolve",
+    "directory": "GET /api/agent/directory",
+    "reputation": "GET /api/agent/reputation",
     "status": "GET /api/agent/status"
   },
   "capabilities": [
@@ -26,7 +31,10 @@
     "milestone-escrow",
     "ipfs-proof",
     "turnkey-wallets",
-    "x402-payments"
+    "x402-payments",
+    "evidence-upload",
+    "reputation-tracking",
+    "requirement-validation"
   ],
   "contact": {
     "email": "sharken1907@gmail.com",

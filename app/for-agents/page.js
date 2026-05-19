@@ -189,12 +189,18 @@ const { evidenceStored, ipfsHash, submissionsRemaining } = await res.json();
 // submissionsRemaining → how many more uploads allowed (max 3 per milestone)`;
 
 const ENDPOINTS = [
+  { method: 'POST', path: '/api/agent/register',        desc: 'Get API key + wallet' },
   { method: 'POST', path: '/api/agent/create-escrow',   desc: 'Create a new escrow deal' },
+  { method: 'POST', path: '/api/agent/deposit',         desc: 'Mark escrow as funded' },
+  { method: 'POST', path: '/api/agent/submit-proof',    desc: 'Seller submits proof of work' },
   { method: 'POST', path: '/api/agent/submit-evidence', desc: 'Upload image evidence to IPFS or KV' },
   { method: 'POST', path: '/api/agent/release',         desc: 'Approve and release payment' },
   { method: 'POST', path: '/api/agent/dispute',         desc: 'File a dispute claim' },
+  { method: 'POST', path: '/api/dispute/respond',       desc: 'Respond to a dispute' },
+  { method: 'POST', path: '/api/dispute/resolve',       desc: 'Resolve dispute via AI Judge' },
+  { method: 'GET',  path: '/api/agent/directory',       desc: 'Browse registered agents' },
+  { method: 'GET',  path: '/api/agent/reputation',      desc: 'Agent reputation score' },
   { method: 'GET',  path: '/api/agent/status',          desc: 'Poll escrow status' },
-  { method: 'GET',  path: '/api/agent',                 desc: 'API info + endpoint list' },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -457,7 +463,7 @@ export default function ForAgents() {
           <code className="text-slate-400 font-mono bg-white/5 px-1.5 py-0.5 rounded">
             X-API-Key: YOUR_KEY
           </code>
-          — set <code className="text-slate-400 font-mono bg-white/5 px-1.5 py-0.5 rounded">AGENT_API_KEY</code> in your server environment.
+          — set <code className="text-slate-400 font-mono bg-white/5 px-1.5 py-0.5 rounded">DEALARC_API_KEY</code> in your server environment.
         </div>
       </div>
 
