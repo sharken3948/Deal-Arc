@@ -1,8 +1,10 @@
 'use client';
 import { useState, useRef } from 'react';
 import { ethers } from 'ethers';
-import { ESCROW_ABI, getRabbyProvider } from '@/lib/contractABI';
-import { useWallet } from '@/app/contexts/WalletContext';
+import { ESCROW_ABI } from '@/lib/contractABI';
+import { useWalletClient, useSwitchChain } from 'wagmi';
+import { BrowserProvider } from 'ethers';
+import { arcTestnet } from '@/lib/wagmi';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS;
 
@@ -22,7 +24,8 @@ function toEvidenceHash(evidenceUrl, reason) {
 }
 
 export default function DisputeModal({ escrow, address, onClose, onResolved }) {
-  const { provider, switchToARC } = useWallet();
+  const { data: walletClient } = useWalletClient();
+  const { switchChainAsync } = useSwitchChain();
   const [reason, setReason]       = useState('');
   const [evidence, setEvidence]   = useState('');
   const [step, setStep]           = useState('form'); // form | signing | submitting | done
@@ -37,14 +40,13 @@ export default function DisputeModal({ escrow, address, onClose, onResolved }) {
     setError('');
 
     try {
-      // 1. Switch to ARC chain using the connected wallet's provider
-      await switchToARC();
+      // 1. Switch to ARC chain
+      await switchChainAsync({ chainId: arcTestnet.id });
 
       // 2. User signs contract.dispute() on-chain
       setStep('signing');
-      const prov   = provider ?? getRabbyProvider();
-      if (!prov) throw new Error('No wallet provider found. Is Rabby installed?');
-      const signer = await new ethers.BrowserProvider(prov).getSigner();
+      if (!walletClient) throw new Error('No wallet connected.');
+      const signer = await new BrowserProvider(walletClient).getSigner();
       const contract  = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
       const bytes32Id     = toBytes32(escrow.id);
       const evidenceHash  = toEvidenceHash(evidenceUrl, reason);

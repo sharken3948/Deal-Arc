@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/app/components/Navbar';
-import { useWallet } from '@/app/contexts/WalletContext';
+import { useAccount } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { Turnstile } from '@marsidev/react-turnstile';
 
 const MODES = [
@@ -77,12 +78,14 @@ function Textarea(props) {
 
 export default function CreateEscrow() {
   const router = useRouter();
-  const { address, connect } = useWallet();
+  const { address } = useAccount();
+  const { openConnectModal } = useConnectModal();
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState(null);
   const [loading, setLoading] = useState(false);
   const [createdEscrow, setCreatedEscrow] = useState(null);
-  const [captchaToken, setCaptchaToken] = useState(null);
+  const IS_DEV = process.env.NODE_ENV === 'development';
+  const [captchaToken, setCaptchaToken] = useState(IS_DEV ? 'dev' : null);
   const [captchaError, setCaptchaError] = useState('');
   const [milestones, setMilestones] = useState([{ title: '', description: '', amount: '' }]);
   const [form, setForm] = useState({
@@ -104,7 +107,7 @@ export default function CreateEscrow() {
   const totalMilestoneAmount = milestones.reduce((s, m) => s + parseFloat(m.amount || 0), 0);
 
   async function handleSubmit() {
-    if (!address) { await connect(); return; }
+    if (!address) { openConnectModal?.(); return; }
 
     setCaptchaError('');
     try {
@@ -308,7 +311,7 @@ export default function CreateEscrow() {
         {step === 3 && (
           <div>
             <div className="flex items-center gap-3 mb-6">
-              <button onClick={() => { setStep(2); setCaptchaToken(null); setCaptchaError(''); }} className="text-slate-500 hover:text-white text-sm">← Back</button>
+              <button onClick={() => { setStep(2); setCaptchaToken(IS_DEV ? 'dev' : null); setCaptchaError(''); }} className="text-slate-500 hover:text-white text-sm">← Back</button>
               <h2 className="text-2xl font-bold text-white">Review & Create</h2>
             </div>
 
@@ -366,18 +369,20 @@ export default function CreateEscrow() {
               </div>
             )}
 
-            <div className="mb-4">
-              <Turnstile
-                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                onSuccess={token => { setCaptchaToken(token); setCaptchaError(''); }}
-                onExpire={() => setCaptchaToken(null)}
-                onError={() => { setCaptchaToken(null); setCaptchaError('Captcha error — please refresh and try again.'); }}
-                options={{ theme: 'dark' }}
-              />
-              {captchaError && (
-                <p className="text-red-400 text-sm mt-2">{captchaError}</p>
-              )}
-            </div>
+            {!IS_DEV && (
+              <div className="mb-4">
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  onSuccess={token => { setCaptchaToken(token); setCaptchaError(''); }}
+                  onExpire={() => setCaptchaToken(null)}
+                  onError={() => { setCaptchaToken(null); setCaptchaError('Captcha error — please refresh and try again.'); }}
+                  options={{ theme: 'dark' }}
+                />
+                {captchaError && (
+                  <p className="text-red-400 text-sm mt-2">{captchaError}</p>
+                )}
+              </div>
+            )}
 
             <button
               onClick={handleSubmit}
@@ -440,7 +445,7 @@ export default function CreateEscrow() {
                 View Escrow →
               </button>
               <button
-                onClick={() => { setStep(1); setMode(null); setCreatedEscrow(null); setForm({ title:'',description:'',requirements:'',amount:'',buyer:'',seller:'' }); setMilestones([{ title:'',description:'',amount:'' }]); setCaptchaToken(null); setCaptchaError(''); }}
+                onClick={() => { setStep(1); setMode(null); setCreatedEscrow(null); setForm({ title:'',description:'',requirements:'',amount:'',buyer:'',seller:'' }); setMilestones([{ title:'',description:'',amount:'' }]); setCaptchaToken(IS_DEV ? 'dev' : null); setCaptchaError(''); }}
                 className="glass px-6 py-3 rounded-xl font-semibold text-sm text-slate-300"
               >
                 Create Another

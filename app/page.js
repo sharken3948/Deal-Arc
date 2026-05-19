@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/app/components/Navbar';
 import EscrowCard from '@/app/components/EscrowCard';
-import { useWallet } from '@/app/contexts/WalletContext';
+import { useAccount } from 'wagmi';
 
 const FILTERS = ['all', 'active', 'pending_deposit', 'proof_submitted', 'awaiting_seller_response', 'disputed', 'completed'];
 
@@ -31,7 +31,7 @@ function StatCard({ label, value, sub, accent, link, linkLabel }) {
 }
 
 export default function Dashboard() {
-  const { address } = useWallet();
+  const { address } = useAccount();
   const [escrows, setEscrows] = useState([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);

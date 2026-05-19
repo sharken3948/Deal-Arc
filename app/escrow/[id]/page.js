@@ -9,18 +9,12 @@ import AIJudgmentPanel from '@/app/components/AIJudgmentPanel';
 import MilestoneList from '@/app/components/MilestoneList';
 import DisputeModal from '@/app/components/DisputeModal';
 import SellerResponseModal from '@/app/components/SellerResponseModal';
-import { useWallet } from '@/app/contexts/WalletContext';
-import { ESCROW_ABI, USDC_ABI, ARC_CHAIN_ID, ARC_RPC, getRabbyProvider } from '@/lib/contractABI';
+import { useAccount, useWalletClient, useSwitchChain } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { ESCROW_ABI, USDC_ABI, ARC_CHAIN_ID, ARC_RPC } from '@/lib/contractABI';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS;
 const USDC_ADDRESS     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
-
-async function getSigner(walletProvider) {
-  // Prefer the provider the user explicitly connected with, fall back to Rabby/window.ethereum.
-  const prov = walletProvider ?? getRabbyProvider();
-  if (!prov) throw new Error('No wallet provider found. Please connect a wallet.');
-  return new ethers.BrowserProvider(prov).getSigner();
-}
 
 // Returns keccak256 bytes32 ID matching what the server stored on-chain
 function toBytes32(uuid) {
@@ -222,7 +216,10 @@ function TransactionDetails({ tx }) {
 export default function EscrowDetail() {
   const { id } = useParams();
   const router = useRouter();
-  const { address, chainId, provider, connect, switchToARC } = useWallet();
+  const { address, chainId } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const { switchChainAsync } = useSwitchChain();
+  const { openConnectModal } = useConnectModal();
 
   const [escrow, setEscrow] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -266,7 +263,7 @@ export default function EscrowDetail() {
   }, [escrow?.id]);
 
   async function doAction(action, body = {}) {
-    if (!address) { await connect(); return; }
+    if (!address) { openConnectModal?.(); return; }
     setActionLoading(action);
     try {
       const res = await fetch(`/api/escrow/${id}`, {
@@ -287,17 +284,17 @@ export default function EscrowDetail() {
   }
 
   async function ensureARC() {
-    if (chainId !== ARC_CHAIN_ID) await switchToARC();
+    if (chainId !== ARC_CHAIN_ID) await switchChainAsync({ chainId: ARC_CHAIN_ID });
   }
 
   async function confirmDeposit() {
-    if (!address) { connect(); return; }
+    if (!address) { openConnectModal?.(); return; }
     setActionLoading('deposit');
     try {
       console.log('[deposit] 1. ensureARC — chainId:', chainId);
       await ensureARC();
-      console.log('[deposit] 2. getSigner — window.rabby:', typeof window !== 'undefined' ? window.rabby : null, 'context provider:', provider);
-      const signer    = await getSigner(provider);
+      if (!walletClient) throw new Error('No wallet connected.');
+      const signer    = await new ethers.BrowserProvider(walletClient).getSigner();
       console.log('[deposit] 3. signer address:', await signer.getAddress());
       const usdc      = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
       const contract  = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
@@ -373,11 +370,12 @@ export default function EscrowDetail() {
   }
 
   async function approve() {
-    if (!address) { connect(); return; }
+    if (!address) { openConnectModal?.(); return; }
     setActionLoading('approve');
     try {
       await ensureARC();
-      const signer    = await getSigner(provider);
+      if (!walletClient) throw new Error('No wallet connected.');
+      const signer    = await new ethers.BrowserProvider(walletClient).getSigner();
       const contract  = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
       const bytes32Id = toBytes32(escrow.id);
 
@@ -669,7 +667,7 @@ export default function EscrowDetail() {
             {!address && (
               <div className="glass rounded-xl p-6 text-center">
                 <p className="text-slate-400 mb-3">Connect your wallet to take actions</p>
-                <button onClick={connect} className="btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold">
+                <button onClick={() => openConnectModal?.()} className="btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold">
                   Connect Wallet
                 </button>
               </div>
@@ -843,7 +841,7 @@ export default function EscrowDetail() {
                   after which the AI judge issues a binding verdict.
                 </p>
                 <button
-                  onClick={() => { if (!address) { connect(); return; } setShowDisputeModal(true); }}
+                  onClick={() => { if (!address) { openConnectModal?.(); return; } setShowDisputeModal(true); }}
                   className="w-full py-3 rounded-xl font-semibold text-sm bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30 transition-colors"
                 >
                   Raise Dispute

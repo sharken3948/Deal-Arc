@@ -1,8 +1,8 @@
 'use client';
 import { useState, useRef } from 'react';
 import { ethers } from 'ethers';
-import { useWallet } from '@/app/contexts/WalletContext';
-import { ESCROW_ABI, getRabbyProvider } from '@/lib/contractABI';
+import { useWalletClient } from 'wagmi';
+import { ESCROW_ABI } from '@/lib/contractABI';
 import AIJudgmentPanel from './AIJudgmentPanel';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS;
@@ -26,7 +26,7 @@ const STATUS_CFG = {
 };
 
 export default function MilestoneList({ milestones, escrowId, sellerAddress, buyerAddress, walletAddress, onUpdate }) {
-  const { provider } = useWallet();
+  const { data: walletClient } = useWalletClient();
 
   const isSeller = walletAddress?.toLowerCase() === sellerAddress?.toLowerCase();
   const isBuyer  = walletAddress?.toLowerCase() === buyerAddress?.toLowerCase();
@@ -83,9 +83,8 @@ export default function MilestoneList({ milestones, escrowId, sellerAddress, buy
       // For defense (disputed): skip on-chain — contract requires MS_PENDING; oracle resolves after AI judges.
       if (ms.status !== 'disputed') {
         setLoading(l => ({ ...l, [ms.id]: 'signing' }));
-        const prov = provider ?? getRabbyProvider();
-        if (!prov) throw new Error('No wallet provider found. Is Rabby installed?');
-        const signer          = await new ethers.BrowserProvider(prov).getSigner();
+        if (!walletClient) throw new Error('No wallet connected.');
+        const signer          = await new ethers.BrowserProvider(walletClient).getSigner();
         const contract        = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
         const bytes32Id       = ethers.keccak256(ethers.toUtf8Bytes(escrowId));
         const deliverableHash = toDeliverableHash(form.imageUrl, form.description);
@@ -140,9 +139,8 @@ export default function MilestoneList({ milestones, escrowId, sellerAddress, buy
     setLoading(l => ({ ...l, [ms.id]: 'dispute' }));
     try {
       // 1. On-chain: disputeMilestone(bytes32 escrowId, uint256 index, bytes32 evidenceHash)
-      const prov = provider ?? getRabbyProvider();
-      if (!prov) throw new Error('No wallet provider found.');
-      const signer       = await new ethers.BrowserProvider(prov).getSigner();
+      if (!walletClient) throw new Error('No wallet connected.');
+      const signer       = await new ethers.BrowserProvider(walletClient).getSigner();
       const contract     = new ethers.Contract(CONTRACT_ADDRESS, ESCROW_ABI, signer);
       const bytes32Id    = ethers.keccak256(ethers.toUtf8Bytes(escrowId));
       const evidenceHash = ethers.keccak256(ethers.toUtf8Bytes(reason));
