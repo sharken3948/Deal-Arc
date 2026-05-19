@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import Groq from 'groq-sdk';
 import { storage } from '@/lib/storage';
 import { createEscrowOnChain } from '@/lib/contract';
 import { withX402 } from '@/lib/x402';
@@ -20,6 +21,18 @@ async function authenticate(request) {
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
+}
+
+async function scoreRequirements(requirements) {
+  const groq   = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const prompt = `Rate these escrow requirements 1-10 for how objectively verifiable they are. An AI judge will evaluate evidence against them. Return only JSON: { "score": number, "feedback": string }. Requirements: ${requirements}`;
+  const completion = await groq.chat.completions.create({
+    model:           'llama-3.1-8b-instant',
+    messages:        [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+    max_tokens:      200,
+  });
+  return JSON.parse(completion.choices[0].message.content);
 }
 
 async function postHandler(request) {
@@ -44,6 +57,40 @@ async function postHandler(request) {
         { success: false, error: 'Missing required fields: mode, title, buyer, seller' },
         { status: 400, headers: CORS },
       );
+    }
+
+    if (mode === 'service' || mode === 'milestone') {
+      const req = (requirements || '').trim();
+      if (req.length < 100) {
+        return NextResponse.json(
+          { success: false, error: 'Requirements too vague. Provide specific, verifiable criteria for AI Judge to evaluate evidence accurately.' },
+          { status: 400, headers: CORS },
+        );
+      }
+      let groqResult = null;
+      try {
+        groqResult = await scoreRequirements(req);
+      } catch {
+        try {
+          groqResult = await scoreRequirements(req);
+        } catch (e) {
+          return NextResponse.json(
+            { success: false, error: 'Requirements validation service unavailable. Please try again.' },
+            { status: 503, headers: CORS },
+          );
+        }
+      }
+      if (!groqResult || groqResult.score < 7) {
+        return NextResponse.json(
+          {
+            success:  false,
+            error:    'Requirements too vague. Provide specific, verifiable criteria for AI Judge to evaluate evidence accurately.',
+            score:    groqResult?.score    ?? null,
+            feedback: groqResult?.feedback ?? null,
+          },
+          { status: 400, headers: CORS },
+        );
+      }
     }
 
     let resolvedAmount = amount || '0';

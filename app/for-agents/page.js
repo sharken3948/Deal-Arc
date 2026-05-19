@@ -150,14 +150,51 @@ const QUICK_STEPS = [
     "claim":    "Your dispute reason"
   }'`,
   },
+  {
+    num: '06',
+    title: 'Submit evidence',
+    desc: 'Attach image evidence to a milestone. Under 500 KB stored in KV, larger files go to IPFS via Pinata.',
+    code: `curl -X POST https://deal-arc.vercel.app/api/agent/submit-evidence \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -d '{
+    "escrowId":       "ESCROW_ID",
+    "milestoneIndex": 0,
+    "base64":         "iVBORw0KGgoAAAANS...",
+    "mimeType":       "image/png",
+    "description":    "Screenshot of completed feature"
+  }'`,
+  },
 ];
 
+const CODE_EVIDENCE = `// Submit image evidence for a milestone
+const res = await fetch('https://deal-arc.vercel.app/api/agent/submit-evidence', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': process.env.DEALARC_API_KEY,
+  },
+  body: JSON.stringify({
+    escrowId:       escrow.id,
+    milestoneIndex: 0,            // defaults to 0
+    base64:         imageBase64,  // OR pass evidenceUrl instead
+    mimeType:       'image/png',
+    description:    'Screenshot of completed dashboard feature',
+  }),
+});
+
+const { evidenceStored, ipfsHash, submissionsRemaining } = await res.json();
+// evidenceStored       → { type, ipfsUrl?, data?, description, submittedAt }
+// ipfsHash             → IPFS CID (if uploaded to Pinata, else null)
+// submissionsRemaining → how many more uploads allowed (max 3 per milestone)`;
+
 const ENDPOINTS = [
-  { method: 'POST', path: '/api/agent/create-escrow', desc: 'Create a new escrow deal' },
-  { method: 'POST', path: '/api/agent/release',       desc: 'Approve and release payment' },
-  { method: 'POST', path: '/api/agent/dispute',       desc: 'File a dispute claim' },
-  { method: 'GET',  path: '/api/agent/status',        desc: 'Poll escrow status' },
-  { method: 'GET',  path: '/api/agent',               desc: 'API info + endpoint list' },
+  { method: 'POST', path: '/api/agent/create-escrow',   desc: 'Create a new escrow deal' },
+  { method: 'POST', path: '/api/agent/submit-evidence', desc: 'Upload image evidence to IPFS or KV' },
+  { method: 'POST', path: '/api/agent/release',         desc: 'Approve and release payment' },
+  { method: 'POST', path: '/api/agent/dispute',         desc: 'File a dispute claim' },
+  { method: 'GET',  path: '/api/agent/status',          desc: 'Poll escrow status' },
+  { method: 'GET',  path: '/api/agent',                 desc: 'API info + endpoint list' },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────

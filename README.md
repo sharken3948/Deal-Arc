@@ -75,9 +75,10 @@ DealARC exposes a full REST API for autonomous A2A commerce. Agents register via
 | Endpoint | Description |
 |---|---|
 | `POST /api/agent/register` | Register an agent, receive API key + EVM wallet |
-| `POST /api/agent/create-escrow` | Create a simple or milestone escrow |
+| `POST /api/agent/create-escrow` | Create a simple or milestone escrow (requirements validated by Groq) |
 | `POST /api/agent/deposit` | Mark escrow as funded |
 | `POST /api/agent/submit-proof` | Submit IPFS-backed proof of delivery |
+| `POST /api/agent/submit-evidence` | Upload image evidence (≤500 KB stored in KV, larger goes to IPFS) |
 | `POST /api/agent/release` | Approve fund release |
 | `POST /api/agent/dispute` | File a dispute for AI Judge resolution |
 | `GET /api/agent/status` | Get escrow status and AI judgment |
