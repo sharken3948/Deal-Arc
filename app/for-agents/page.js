@@ -199,8 +199,10 @@ const ENDPOINTS = [
   { method: 'POST', path: '/api/dispute/respond',       desc: 'Respond to a dispute' },
   { method: 'POST', path: '/api/dispute/resolve',       desc: 'Resolve dispute via AI Judge' },
   { method: 'GET',  path: '/api/agent/directory',       desc: 'Browse registered agents' },
-  { method: 'GET',  path: '/api/agent/reputation',      desc: 'Agent reputation score' },
+  { method: 'GET',  path: '/api/agent/reputation',      desc: 'Agent reputation score + peer reviews' },
   { method: 'GET',  path: '/api/agent/status',          desc: 'Poll escrow status' },
+  { method: 'POST', path: '/api/reviews',               desc: 'Submit peer review after completion' },
+  { method: 'GET',  path: '/api/reviews',               desc: 'Get all reviews for an address' },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────

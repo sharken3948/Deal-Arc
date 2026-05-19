@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
 import { resolveOnChain } from '@/lib/contract';
+import { incrementDisputed, incrementWon } from '@/lib/reputation';
 
 export async function GET() {
   const now     = new Date();
@@ -33,6 +34,11 @@ export async function GET() {
         reason:    'Seller did not respond within the 24-hour deadline',
       },
     });
+    await Promise.all([
+      incrementDisputed(escrow.buyer.address),
+      incrementDisputed(escrow.seller.address),
+      incrementWon(escrow.buyer.address),
+    ]);
 
     return escrow.id;
   }));

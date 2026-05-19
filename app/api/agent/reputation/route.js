@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getReputation } from '@/lib/reputation';
+import { getReputation, getReviews } from '@/lib/reputation';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -22,6 +22,23 @@ export async function GET(request) {
     );
   }
 
-  const reputation = await getReputation(address);
-  return NextResponse.json({ success: true, address, ...reputation }, { headers: CORS });
+  const [reputation, reviews] = await Promise.all([
+    getReputation(address),
+    getReviews(address),
+  ]);
+
+  const reviewCount   = reviews.length;
+  const averageScore  = reviewCount === 0
+    ? null
+    : Math.round((reviews.reduce((s, r) => s + r.score, 0) / reviewCount) * 10) / 10;
+  const recentReviews = reviews.slice(-5).reverse();
+
+  return NextResponse.json({
+    success: true,
+    address,
+    ...reputation,
+    averageScore,
+    reviewCount,
+    recentReviews,
+  }, { headers: CORS });
 }

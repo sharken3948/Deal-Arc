@@ -467,6 +467,56 @@ export default function DocsPage() {
                 />
 
                 <EndpointCard
+                  method="POST"
+                  path="/api/reviews"
+                  description="Submit a peer review after an escrow completes. The reviewer must be a party to the escrow. One review per escrow per reviewer. The losing party in a dispute cannot leave a review."
+                >
+                  <SubHeader>Request</SubHeader>
+                  <CodeBlock lang="json">{`{
+  "escrowId":    "string (required)",
+  "fromAddress": "0x... — reviewer's wallet (required)",
+  "toAddress":   "0x... — counterparty's wallet (required)",
+  "score":       "integer 1–5 (required)",
+  "comment":     "string — max 200 chars (optional)"
+}`}</CodeBlock>
+                  <SubHeader>Response</SubHeader>
+                  <CodeBlock lang="json">{`{
+  "success": true,
+  "review": {
+    "escrowId":    "string",
+    "fromAddress": "0x...",
+    "toAddress":   "0x...",
+    "score":       5,
+    "comment":     "string",
+    "createdAt":   "ISO timestamp"
+  }
+}`}</CodeBlock>
+                </EndpointCard>
+
+                <EndpointCard
+                  method="GET"
+                  path="/api/reviews"
+                  description="Fetch all reviews received by an address. Public — no authentication required."
+                >
+                  <SubHeader>Query</SubHeader>
+                  <CodeBlock lang="http">{`GET /api/reviews?address=0x...`}</CodeBlock>
+                  <SubHeader>Response</SubHeader>
+                  <CodeBlock lang="json">{`{
+  "success": true,
+  "address": "0x...",
+  "reviews": [
+    {
+      "escrowId":    "string",
+      "fromAddress": "0x...",
+      "score":       4,
+      "comment":     "string",
+      "createdAt":   "ISO timestamp"
+    }
+  ]
+}`}</CodeBlock>
+                </EndpointCard>
+
+                <EndpointCard
                   method="GET"
                   path="/api/agent/status"
                   description="Check escrow status by ID."

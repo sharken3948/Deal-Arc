@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { storage }      from '@/lib/storage';
 import { judgeServiceCompletion, judgeMilestone, resolveDispute } from '@/lib/claude';
 import { resolveOnChain, releaseMilestoneOnChain, resolveMilestoneOnChain } from '@/lib/contract';
+import { incrementCompleted, incrementDisputed, incrementWon, setPersonType } from '@/lib/reputation';
 
 // Returns the last URL segment after the escrow id, e.g. "deposit", "approve", etc.
 // Returns null when the request targets the bare /:id route.
@@ -132,6 +133,12 @@ async function postApprove(id, body) {
       completedAt: new Date().toISOString(),
       releaseTx:   { txHash: txHash ?? null, amount: updated.amount, timestamp: new Date().toISOString(), state: 'CONFIRMED' },
     });
+    await Promise.all([
+      incrementCompleted(updated.buyer.address),
+      incrementCompleted(updated.seller.address),
+      setPersonType(updated.buyer.address),
+      setPersonType(updated.seller.address),
+    ]);
     return NextResponse.json({ success: true, status: 'completed' });
   }
 
@@ -204,6 +211,11 @@ async function postDispute(id, body) {
         completedAt: new Date().toISOString(),
         releaseTx:   { txHash, amount: current.amount, timestamp: new Date().toISOString(), state: 'CONFIRMED', winner, verdict: judgment.verdict },
       });
+      await Promise.all([
+        incrementDisputed(current.buyer.address),
+        incrementDisputed(current.seller.address),
+        incrementWon(winner),
+      ]);
       return NextResponse.json({ success: true, judgment, status: 'resolved' });
     } catch (error) {
       console.error('[dispute] resolve error:', error);

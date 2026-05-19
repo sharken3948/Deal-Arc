@@ -232,6 +232,12 @@ export default function EscrowDetail() {
   // null = still checking, true = confirmed in current contract, false = not found
   const [contractLive, setContractLive] = useState(null);
 
+  const [reviewScore,      setReviewScore]      = useState(0);
+  const [reviewComment,    setReviewComment]    = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewDone,       setReviewDone]       = useState(false);
+  const [reviewError,      setReviewError]      = useState('');
+
   const fetchEscrow = useCallback(async () => {
     const res = await fetch(`/api/escrow/${id}`);
     const data = await res.json();
@@ -261,6 +267,24 @@ export default function EscrowDetail() {
         setContractLive(true);
       });
   }, [escrow?.id]);
+
+  // Check whether the connected wallet already left a review for this completed escrow
+  useEffect(() => {
+    if (escrow?.status !== 'completed' || !address) return;
+    const buyer  = escrow.buyer.address.toLowerCase();
+    const seller = escrow.seller.address.toLowerCase();
+    const me     = address.toLowerCase();
+    if (me !== buyer && me !== seller) return;
+    const counterparty = me === buyer ? escrow.seller.address : escrow.buyer.address;
+    fetch(`/api/reviews?address=${counterparty}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.reviews?.some(r => r.escrowId === escrow.id && r.fromAddress === me)) {
+          setReviewDone(true);
+        }
+      })
+      .catch(() => {});
+  }, [escrow?.id, escrow?.status, escrow?.buyer?.address, escrow?.seller?.address, address]);
 
   async function doAction(action, body = {}) {
     if (!address) { openConnectModal?.(); return; }
@@ -369,6 +393,32 @@ export default function EscrowDetail() {
     }
   }
 
+  async function submitReview() {
+    const counterpartyAddr = isBuyer ? escrow.seller.address : escrow.buyer.address;
+    setReviewSubmitting(true);
+    setReviewError('');
+    try {
+      const res = await fetch('/api/reviews', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          escrowId:    escrow.id,
+          fromAddress: address,
+          toAddress:   counterpartyAddr,
+          score:       reviewScore,
+          comment:     reviewComment,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      setReviewDone(true);
+    } catch (e) {
+      setReviewError(e.message);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }
+
   async function approve() {
     if (!address) { openConnectModal?.(); return; }
     setActionLoading('approve');
@@ -457,6 +507,12 @@ export default function EscrowDetail() {
   const canDispute        = isOnChain && isParty && ['active', 'proof_submitted'].includes(escrow.status) && !isMilestone;
   const canConfirmDeposit = isOnChain && isBuyer && escrow.status === 'pending_deposit';
   const canSubmitDefense  = isSeller && ['awaiting_seller_response', 'disputed'].includes(escrow.status);
+
+  const disputeWinner  = escrow.releaseTx?.winner;
+  const disputeVerdict = escrow.releaseTx?.verdict;
+  const isLoser        = !!disputeWinner && disputeVerdict !== 'SPLIT_50_50'
+                         && address?.toLowerCase() !== disputeWinner.toLowerCase();
+  const canLeaveReview = isParty && !isLoser;
 
   const MODE_ICONS = { service: '🤝', milestone: '🏁', simple: '💸' };
   const MODE_LABELS = { service: 'Service & Product', milestone: 'Milestone', simple: 'Simple Transfer' };
@@ -901,6 +957,59 @@ export default function EscrowDetail() {
                   </p>
                 </div>
                 {escrow.releaseTx && <TransactionDetails tx={escrow.releaseTx} />}
+
+                {/* Review section */}
+                {isParty && (
+                  reviewDone ? (
+                    <div className="glass rounded-xl p-5 text-center border border-emerald-500/20">
+                      <p className="text-emerald-400 font-semibold text-sm">✓ Review submitted</p>
+                      <p className="text-xs text-slate-500 mt-1">Thanks for rating your experience.</p>
+                    </div>
+                  ) : canLeaveReview ? (
+                    <Section title="Rate Your Experience">
+                      <p className="text-sm text-slate-400 mb-4">
+                        How was working with {isBuyer ? 'the seller' : 'the buyer'}?
+                      </p>
+                      <div className="flex items-center gap-1 mb-4">
+                        {[1, 2, 3, 4, 5].map(s => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setReviewScore(s)}
+                            className={`text-3xl leading-none transition-colors ${
+                              s <= reviewScore ? 'text-amber-400' : 'text-slate-600 hover:text-amber-300'
+                            }`}
+                          >
+                            ★
+                          </button>
+                        ))}
+                        {reviewScore > 0 && (
+                          <span className="ml-2 text-sm text-slate-400">{reviewScore} / 5</span>
+                        )}
+                      </div>
+                      <textarea
+                        placeholder="Leave a comment (optional, max 200 chars)"
+                        value={reviewComment}
+                        onChange={e => setReviewComment(e.target.value.slice(0, 200))}
+                        rows={3}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none mb-1"
+                      />
+                      <p className="text-xs text-slate-600 text-right mb-3">{reviewComment.length}/200</p>
+                      {reviewError && <p className="text-xs text-red-400 mb-3">{reviewError}</p>}
+                      <button
+                        onClick={submitReview}
+                        disabled={reviewScore === 0 || reviewSubmitting}
+                        className="btn-primary w-full py-3 rounded-xl font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {reviewSubmitting ? 'Submitting…' : 'Submit Review'}
+                      </button>
+                    </Section>
+                  ) : (
+                    <div className="glass rounded-xl p-4 text-center border border-slate-700/40">
+                      <p className="text-xs text-slate-500">Reviews are not available for the losing party in a dispute.</p>
+                    </div>
+                  )
+                )}
               </div>
             )}
 

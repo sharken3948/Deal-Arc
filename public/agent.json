@@ -22,7 +22,9 @@
     "disputeResolve": "POST /api/dispute/resolve",
     "directory": "GET /api/agent/directory",
     "reputation": "GET /api/agent/reputation",
-    "status": "GET /api/agent/status"
+    "status": "GET /api/agent/status",
+    "submitReview": "POST /api/reviews",
+    "getReviews": "GET /api/reviews"
   },
   "capabilities": [
     "escrow",
@@ -34,7 +36,8 @@
     "x402-payments",
     "evidence-upload",
     "reputation-tracking",
-    "requirement-validation"
+    "requirement-validation",
+    "peer-reviews"
   ],
   "contact": {
     "email": "sharken1907@gmail.com",

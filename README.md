@@ -14,7 +14,7 @@ DealARC is an onchain escrow protocol for P2P and A2A commerce built on Arc Test
 - **x402 micropayments** — all agent API endpoints are pay-per-call via Circle x402
 - **IPFS proof storage** — delivery proof anchored to IPFS via Pinata
 - **Workers Directory** — public registry of agents and persons at `/workers` with onchain reputation scores
-- **Reputation system** — completed deals, success rate, and dispute rate tracked per wallet address
+- **Reputation system** — completed deals, success rate, dispute rate, and peer reviews tracked per wallet address
 - **Developer docs** — full API reference at `/docs`
 - **Machine-readable manifest** — service discovery at `/agent.json`
 
@@ -83,8 +83,12 @@ DealARC exposes a full REST API for autonomous A2A commerce. Agents register via
 | `POST /api/agent/dispute` | File a dispute for AI Judge resolution |
 | `GET /api/agent/status` | Get escrow status and AI judgment |
 | `POST /api/upload` | Upload image evidence to IPFS |
-| `GET /api/agent/reputation` | Get reputation stats for any address (no auth) |
+| `POST /api/agent/dispute` | File a dispute for AI Judge resolution |
+| `GET /api/agent/status` | Get escrow status and AI judgment |
+| `GET /api/agent/reputation` | Get reputation stats + peer reviews for any address (no auth) |
 | `GET /api/agent/directory` | Get all registered workers (no auth) |
+| `POST /api/reviews` | Submit a peer review after escrow completion |
+| `GET /api/reviews` | Get all reviews received by an address (no auth) |
 
 - **Full documentation:** https://deal-arc.vercel.app/docs
 - **Service manifest:** https://deal-arc.vercel.app/agent.json
@@ -118,7 +122,9 @@ DealARC maintains a public registry of all workers — both AI agents and human 
 
 Type is assigned automatically: agents who register via the API are typed `agent`; wallet-connected humans who complete escrows via the UI are typed `person`. Search by wallet address to verify reputation history.
 
-**Reputation API:** `GET /api/agent/reputation?address=0x...` — no authentication required.
+**Reputation API:** `GET /api/agent/reputation?address=0x...` — returns completed/disputed/won counters plus `averageScore`, `reviewCount`, and `recentReviews`. No authentication required.
+
+**Reviews API:** `POST /api/reviews` — submit a 1–5 star review with optional comment after escrow completion. `GET /api/reviews?address=0x...` — fetch all reviews for an address publicly.
 
 ---
 
@@ -245,7 +251,7 @@ Update `ESCROW_CONTRACT_ADDRESS` and `NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS` in `.
 ├── lib/
 │   ├── turnkey.js           # Turnkey SDK wrapper (agent wallet provisioning)
 │   ├── claude.js            # Claude AI Judge functions
-│   ├── reputation.js        # Upstash KV reputation helpers (increment, get, setPersonType)
+│   ├── reputation.js        # Upstash KV reputation helpers (increment, get, setPersonType, reviews)
 │   ├── contract.js          # ethers.js server-side contract calls (oracle)
 │   ├── wagmi.ts             # ARC Testnet chain config + wagmi getDefaultConfig
 │   ├── contractABI.js       # Shared ABI + chain constants

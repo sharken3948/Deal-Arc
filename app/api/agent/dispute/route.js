@@ -7,6 +7,7 @@ import { getAgentSigner } from '@/lib/turnkey';
 import { isAuthenticated } from '@/lib/agentAuth';
 import { withX402 } from '@/lib/x402';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { incrementDisputed, incrementWon } from '@/lib/reputation';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -106,6 +107,11 @@ async function postHandler(request) {
           completedAt: new Date().toISOString(),
           releaseTx:   { txHash, amount: current.amount, timestamp: new Date().toISOString(), state: 'CONFIRMED', winner, verdict: judgment.verdict },
         });
+        await Promise.all([
+          incrementDisputed(current.buyer.address),
+          incrementDisputed(current.seller.address),
+          incrementWon(winner),
+        ]);
 
         return NextResponse.json({ success: true, status: 'resolved', judgment }, { headers: CORS });
       } catch (error) {
