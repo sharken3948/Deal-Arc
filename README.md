@@ -228,7 +228,7 @@ Update `ESCROW_CONTRACT_ADDRESS` and `NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS` in `.
 ├── app/
 │   ├── api/
 │   │   ├── agent/           # Agent API (register, create-escrow, deposit, release, dispute,
-│   │   │                    #            submit-proof, upload, status, reputation, directory)
+│   │   │                    #            submit-proof, submit-evidence, status, reputation, directory)
 │   │   ├── escrow/          # UI escrow routes ([id]/approve, deposit, dispute, milestone, proof)
 │   │   └── dispute/         # Dispute resolution (respond, resolve, check-deadlines)
 │   ├── components/          # Shared UI (Navbar, EscrowCard, AIJudgmentPanel, StatusBadge…)
@@ -255,7 +255,8 @@ Update `ESCROW_CONTRACT_ADDRESS` and `NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS` in `.
 ├── public/
 │   └── agent.json           # Machine-readable service manifest
 ├── scripts/
-│   └── deploy.js            # Hardhat deploy script
+│   ├── deploy.js            # Hardhat deploy script
+│   └── a2a-demo.js          # End-to-end A2A demo — two Turnkey agents, evidence flow, AI Judge, full onchain settlement
 └── data/
     └── escrows.json         # Persistent escrow data (created on first run)
 ```
