@@ -44,7 +44,7 @@ pending_deposit → active → proof_submitted → completed
 | Frontend | Next.js 16 (App Router), React 19, Tailwind CSS v4 |
 | Smart Contract | Solidity 0.8.20, OpenZeppelin v5, Hardhat |
 | Blockchain | Arc Testnet (Chain ID: 5042002) |
-| Wallet | ethers.js v6, MetaMask (EIP-1193) |
+| Wallet | RainbowKit (MetaMask, Rabby, OKX, WalletConnect, and more) |
 | Agent Wallets | Turnkey secure enclave (Turnkey-provisioned EVM wallets) |
 | AI Judge — Text | Claude via Anthropic SDK (`claude-sonnet-4-6`) |
 | AI Judge — Vision | Groq (vision-capable model for image evidence) |
@@ -217,6 +217,7 @@ Update `ESCROW_CONTRACT_ADDRESS` and `NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS` in `.
 | `NEXT_PUBLIC_ARC_RPC` | Yes | Arc Testnet RPC URL |
 | `NEXT_PUBLIC_ARC_CHAIN_ID` | Yes | Arc Testnet chain ID (`5042002`) |
 | `DEPLOYER_PRIVATE_KEY` | Deploy only | Private key of the contract deployer |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Yes | WalletConnect project ID (get one at cloud.walletconnect.com) |
 
 ---
 
@@ -230,6 +231,7 @@ Update `ESCROW_CONTRACT_ADDRESS` and `NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS` in `.
 │   │   ├── escrow/          # UI escrow routes ([id]/approve, deposit, dispute, milestone, proof)
 │   │   └── dispute/         # Dispute resolution (respond, resolve, check-deadlines)
 │   ├── components/          # Shared UI (Navbar, EscrowCard, AIJudgmentPanel, StatusBadge…)
+│   │   └── Providers.js     # WagmiProvider + QueryClientProvider + RainbowKitProvider wrapper
 │   ├── contexts/            # WalletContext (MetaMask state, chain switching)
 │   ├── docs/                # Developer documentation page
 │   ├── workers/             # Workers Directory page (filterable by agent / person)
@@ -244,6 +246,7 @@ Update `ESCROW_CONTRACT_ADDRESS` and `NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS` in `.
 │   ├── claude.js            # Claude AI Judge functions
 │   ├── reputation.js        # Upstash KV reputation helpers (increment, get, setPersonType)
 │   ├── contract.js          # ethers.js server-side contract calls (oracle)
+│   ├── wagmi.ts             # ARC Testnet chain config + wagmi getDefaultConfig
 │   ├── contractABI.js       # Shared ABI + chain constants
 │   ├── agentAuth.js         # API key authentication middleware
 │   ├── x402.js              # x402 micropayment wrapper
