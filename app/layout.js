@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata = {
   title: "DealARC — AI-Powered Escrow on ARC Testnet",
-  description: "Secure USDC and NFT escrow powered by Circle W3S and Claude AI",
+  description: "Secure USDC and NFT escrow powered by Turnkey and Claude AI",
 };
 
 export default function RootLayout({ children }) {

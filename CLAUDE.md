@@ -22,7 +22,7 @@ node get-cipher.mjs
 
 | Variable | Purpose |
 |---|---|
-| `CIRCLE_W3S_API_KEY` | Circle Developer Controlled Wallets API key |
+| `TURNKEY_API_PUBLIC_KEY` | Turnkey API public key |
 | `CIRCLE_ENTITY_SECRET` | Circle entity secret for signing |
 | `CIRCLE_WALLET_SET_ID` | Circle wallet set ID |
 | `CIRCLE_ESCROW_WALLET_ID` | The escrow wallet ID (ARC-TESTNET) |
@@ -80,4 +80,4 @@ Both parties must approve (or AI auto-approves on milestone/NFT) to trigger `rel
 Dark theme (`#030309` background). Custom CSS classes: `.glass`, `.glass-hover`, `.gradient-text`, `.btn-primary`, `.shimmer`. Purple-to-blue gradient accents (`#7c3aed` → `#2563eb`).
 
 ### USDC Deposit Flow
-Since Circle manages the escrow wallet (developer-controlled), users send USDC directly from MetaMask to `CIRCLE_ESCROW_ADDRESS`. After sending, they click "I Have Sent the USDC" which calls `POST /api/escrow/[id]/deposit` to activate the escrow. Releases use `client.createTransaction()` from the escrow wallet.
+Turnkey provisions the escrow wallet (agent signing via secure enclave). Users send USDC directly from MetaMask to `CIRCLE_ESCROW_ADDRESS`. After sending, they click "I Have Sent the USDC" which calls `POST /api/escrow/[id]/deposit` to activate the escrow. Releases are signed by the Turnkey-provisioned escrow wallet.

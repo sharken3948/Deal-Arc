@@ -68,7 +68,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-6 py-8 sm:py-16">
           <div className="mb-10">
             <p className="text-xs font-semibold text-purple-400 uppercase tracking-widest mb-3">
-              Powered by Circle W3S · Claude AI
+              Powered by Turnkey · Claude AI
             </p>
             <h1 className="text-4xl sm:text-5xl font-bold mb-4">
               <span className="gradient-text">DealARC</span>
